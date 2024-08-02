@@ -1,0 +1,10 @@
+---
+# Initialize a Molecule scenario for use within a role
+
+- name: Provision file structure
+  hosts: localhost
+  tasks:
+    - name: Launch provisioner
+      ansible.builtin.include_role:
+        name: influxdata.molecule.init
+

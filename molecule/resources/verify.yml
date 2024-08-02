@@ -1,0 +1,31 @@
+---
+# Verify that the role being tested has done what it's supposed to
+
+- name: Verify
+  hosts: molecule
+  tasks:
+    - name: Load system facts
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - distribution
+
+    - name: Add compatibility options for legacy OS
+      when: >-
+        ansible_distribution == 'Amazon' and ansible_distribution_major_version == '2' or
+        ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+      ansible.builtin.set_fact:
+        ## This is set here because AL2 doesn't support the default values which use the Include directive
+        system_sshd_config_defaults:
+          AuthorizedKeysFile: .ssh/authorized_keys
+        ansible_python_interpreter: /usr/local/bin/python3.10
+
+    - name: Run system role with non-default settings
+      ansible.builtin.include_role:
+        name: system
+      vars:
+        ansible_user: molecule_runner
+        system_enable_hostname: false   # Can't replace hostname file in docker containers
+        system_motd_config_version: molecule-ci-test
+

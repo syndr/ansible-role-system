@@ -1,0 +1,12 @@
+---
+
+- name: Install Packages with pip3
+  become: true
+  ansible.builtin.pip:
+    name: "{{ item.key }}"
+    version: "{{ item.value.version | default(omit) }}"
+    state: present
+    executable: pip3
+  loop: "{{ (system_packages_pip3_base | default({}) | combine(system_packages_pip3_extra | default({})) | dict2items) }}"
+  when: (system_packages_pip3_base | default({}) | length > 0) or (system_packages_pip3_extra | default({}) | length > 0)
+

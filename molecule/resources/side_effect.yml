@@ -1,0 +1,10 @@
+---
+# The side effect playbook executes actions which produce side effects to the instances(s). Intended to test HA failover scenarios or the like.
+
+- name: Test side effects
+  hosts: molecule
+  tasks:
+    - name: No side effect tests configured
+      ansible.builtin.debug:
+        msg: Add side-effect tests here!
+

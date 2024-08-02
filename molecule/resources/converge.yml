@@ -1,0 +1,48 @@
+---
+# Verify that the target code runs successfullly.
+# Note that this playbook (converge.yml) must be idempotent!
+
+# Check that the molecule inventory is correctly configured
+- name: Fail if molecule group is missing
+  hosts: localhost
+  tags: always
+  tasks:
+    - name: Print host inventory groups
+      ansible.builtin.debug:
+        msg: "{{ groups }}"
+
+    - name: Assert group existence
+      ansible.builtin.assert:
+        that: "'molecule' in groups"
+        fail_msg: |
+          molecule group was not found inside inventory groups: {{ groups }}
+
+- name: Converge
+  hosts: molecule
+  vars:
+    ansible_user: molecule_runner
+  tasks:
+    - name: Load system facts
+      tags: always
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - distribution
+
+    - name: Add compatibility options for legacy OS
+      tags: always
+      when: >-
+        ansible_distribution == 'Amazon' and ansible_distribution_major_version == '2' or
+        ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+      ansible.builtin.set_fact:
+        ## This is set here because AL2 doesn't support the default values which use the Include directive
+        system_sshd_config_defaults:
+          AuthorizedKeysFile: .ssh/authorized_keys
+        ansible_python_interpreter: /usr/local/bin/python3.10
+
+    - name: Load system role
+      tags: always
+      ansible.builtin.include_role:
+        name: system
+

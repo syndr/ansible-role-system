@@ -1,0 +1,32 @@
+---
+
+- name: Setup Bash Aliases
+  become: true
+  ansible.builtin.lineinfile:
+    dest: "/etc/profile.d/aliases.sh"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    line: 'alias {{ item.key }}="{{ item.value }}"'
+    regexp: "^alias {{ item.key }}="
+  with_dict: "{{ system_bash_aliases }}"
+
+# - name: Setup Bash History
+#   template:
+#     src="etc/profile.d/shell_history.j2"
+#     dest="/etc/profile.d/shell_history.sh"
+#     owner="root"
+#     group="root"
+#     mode="0644"
+#   when: system_bash_history
+
+# - name: Setup Bash Env
+#   template:
+#     src="etc/profile.d/bash_env.j2"
+#     dest="/etc/profile.d/bash_env.sh"
+#     owner="root"
+#     group="root"
+#     mode="0644"
+#   when: system_bash_env
+

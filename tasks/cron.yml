@@ -1,0 +1,56 @@
+---
+# Manage cron jobs
+
+- name: Validate cron job config
+  loop: "{{ system_cron_jobs }}"
+  loop_control:
+    loop_var: __system_cron_job
+  ansible.builtin.assert:
+    that:
+      - __system_cron_job.name is defined
+      - __system_cron_job.name | regex_search('^[a-zA-Z0-9_-]+$')
+      - __system_cron_job.job is defined
+      - __system_cron_job.user | default(root) is truthy
+      - __system_cron_job.minute is defined if __system_cron_job.special_time is not defined else true
+      - __system_cron_job.hour is defined if __system_cron_job.special_time is not defined else true
+      - __system_cron_job.day is defined if __system_cron_job.special_time is not defined else true
+      - (__system_cron_job.special_time | default('') in ['reboot', 'yearly', 'annually', 'monthly', 'weekly', 'daily', 'hourly']
+        if __system_cron_job.special_time is defined else true)
+      - (__system_cron_job.weekday | regex_search('^[0-6*]$') is truthy if __system_cron_job.weekday is defined else true)
+      - __system_cron_job.state | default('present') in ['present', 'absent']
+      - __system_cron_job.env is mapping if __system_cron_job.env is defined else true
+    fail_msg: "Invalid cron job configuration provided! Please check your configuration and try again."
+    success_msg: "Cron job configuration validated successfully."
+
+- name: Configure cron job
+  loop: "{{ system_cron_jobs }}"
+  loop_control:
+    loop_var: __system_cron_job
+  ansible.builtin.include_tasks: cron-job.yml
+
+- name: Cronie service is enabled and running
+  become: true
+  ansible.builtin.systemd_service:
+    name: crond
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Load running services
+  # Become is required on Fedora 40 due to "can't open file" error
+  become: true
+  ansible.builtin.service_facts:
+
+- name: 🐜 Show discovered crond service
+  ansible.builtin.debug:
+    var: ansible_facts.services['crond.service']
+    verbosity: 1
+
+- name: Validate cron status
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services['crond.service'].state | default('absent') == 'running'
+      - ansible_facts.services['crond.service'].status | default('absent') == 'enabled'
+    fail_msg: "Cron service is not enabled or running!"
+    success_msg: "Cron service is enabled and running."
+

@@ -1,0 +1,12 @@
+---
+
+collections:
+  - name: ansible.posix
+  - name: amazon.aws
+  - name: community.crypto
+  - name: community.general
+  - name: community.docker
+  - name: git+https://github.com/influxdata/ansible-collection-molecule.git
+    type: git
+    version: latest
+

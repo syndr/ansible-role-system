@@ -1,0 +1,73 @@
+---
+# This is a reusable workflow that can be used to run molecule tests
+# https://docs.github.com/en/actions/using-workflows/reusing-workflows
+#
+
+on:
+  workflow_call:
+    inputs:
+      scenario:
+        required: true
+        type: string
+      python-version:
+        required: true
+        type: string
+      working-directory:
+        required: false
+        type: string
+        default: '.'
+      runner-type:
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+      python-dependencies:
+        required: false
+        type: string
+      timeout-minutes:
+        required: false
+        type: number
+        default: 360
+      potato-username:
+        required: false
+        type: string
+        default: ''
+      vault-identity:
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  molecule-test:
+    runs-on: ${{ inputs.runner-type }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          # Install ansible-core first (with version pinning)
+          pip install ansible-core==2.16
+          pip install molecule ansible-lint requests ${{ inputs.python-dependencies }}
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Test with Molecule scenario ${{ inputs.scenario }}
+        env:
+          POTATO_API_USERNAME: ${{ inputs.potato-username }}
+          POTATO_API_PASSWORD: ${{ secrets.POTATO_API_PASSWORD }}
+          ANSIBLE_VAULT_IDENTITY: ${{ inputs.vault-identity }}
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+          # Make molecule output colored content (easier to read via GH UI)
+          PY_COLORS: 1
+          ANSIBLE_FORCE_COLOR: 1
+        timeout-minutes: ${{ inputs.timeout-minutes }}
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          molecule test -s ${{ inputs.scenario }}
+

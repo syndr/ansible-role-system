@@ -1,0 +1,31 @@
+---
+# vars file for System
+
+# The version of this project
+__system_project_version: "{{ system_motd_config_version }}"
+
+# Numerical representation of the day of the week
+__system_day_of_week_number:
+  Sunday: 0
+  Monday: 1
+  Tuesday: 2
+  Wednesday: 3
+  Thursday: 4
+  Friday: 5
+  Saturday: 6
+
+# OS distributions that include errata in their package repositories
+#  - These distributions can be configured to automatically update packages with the 'security' designation
+__system_packages_errata_distros:
+  - RedHat
+  - Rocky
+  - Amazon
+
+# Set distributions for which we manage yum.conf and dnf.conf (For the templates)
+__system_pkgmgr_supported_distributions:
+  - CentOS
+  - Fedora
+  - RedHat
+  - Rocky
+  - Amazon
+

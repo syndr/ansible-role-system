@@ -1,0 +1,83 @@
+---
+role_name_check: 0
+dependency:
+  name: galaxy
+driver:
+  name: default
+  options:
+    managed: true
+    login_cmd_template: 'docker exec -ti {instance} bash'
+platforms:
+  - name: role-system-fedora40
+    type: docker
+    image: geerlingguy/docker-fedora40-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
+      system_enable_hostname: false   # Can't replace hostname file in docker containers
+      system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
+  - name: role-system-rocky9
+    type: docker
+    image: geerlingguy/docker-rockylinux9-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
+      system_enable_hostname: false   # Can't replace hostname file in docker containers
+provisioner:
+  name: ansible
+  log: True
+  playbooks:
+    create: ../resources/create.yml
+    prepare: ../resources/prepare.yml
+    converge: ../resources/converge.yml
+    side_effect: ../resources/side_effect.yml
+    verify: ../resources/verify.yml
+    cleanup: ../resources/cleanup.yml
+    destroy: ../resources/destroy.yml
+  config_options:
+    defaults:
+      gathering: explicit
+      playbook_vars_root: top
+      verbosity: ${ANSIBLE_VERBOSITY:-0}
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+verifier:
+  name: ansible
+  enabled: true
+

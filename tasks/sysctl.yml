@@ -1,0 +1,13 @@
+---
+
+- name: Set sysctl parameters
+  become: true
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_set: true
+    ignoreerrors: false
+    reload: yes
+  loop: "{{ (system_sysctl | default({})) | combine(system_extra_sysctl | default({})) | dict2items }}"
+

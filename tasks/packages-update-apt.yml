@@ -1,0 +1,38 @@
+---
+
+- name: Configure package auto-update (apt)
+  when: system_enable_packages_auto_update
+  block:
+    - name: APT auto-update not yet supported
+      ansible.builtin.fail:
+        msg: "Get yourself a 🍪 by adding support for APT auto-update!"
+
+    - name: Install unattended-upgrades
+      become: true
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: Configure unattended-upgrades
+      ansible.builtin.template:
+        src: etc/apt/apt.conf.d/50unattended-upgrades.j2
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable and start unattended-upgrades
+      become: true
+      ansible.builtin.systemd:
+        name: unattended-upgrades
+        enabled: true
+        state: started
+
+- name: Disable package auto-update (apt)
+  when: not system_enable_packages_auto_update
+  become: true
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    enabled: false
+    state: stopped
+
