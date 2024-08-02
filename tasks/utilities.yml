@@ -1,0 +1,15 @@
+---
+
+- name: Deploy utility script
+  loop:
+    - moon-dust.sh
+  loop_control:
+    loop_var: __system_utility_script
+  become: true
+  ansible.builtin.copy:
+    src: "{{ role_path }}/scripts/{{ __system_utility_script }}"
+    dest: "{{ system_tools_bin }}/{{ __system_utility_script }}"
+    owner: root
+    group: root
+    mode: '0755'
+

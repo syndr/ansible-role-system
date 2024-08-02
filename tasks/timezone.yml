@@ -1,0 +1,21 @@
+---
+
+# Set the timezone to Etc/UTC
+- name: Configure system timezone to Etc/UTC
+  become: true
+  block:
+    - name: Check if timezone is already set to Etc/UTC
+      ansible.builtin.debug:
+        msg: "The timezone is already set to Etc/UTC."
+      when: ansible_date_time.tz == 'UTC'
+
+    - name: Set timezone to Etc/UTC
+      community.general.timezone:
+        name: Etc/UTC
+      register: timezone_change
+      when: ansible_date_time.tz != 'UTC'
+
+    - name: Debug message if timezone was changed
+      ansible.builtin.debug:
+        msg: "The timezone was changed to Etc/UTC."
+      when: timezone_change is changed

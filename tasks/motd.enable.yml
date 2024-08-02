@@ -1,0 +1,72 @@
+---
+# Attempt to enable the MOTD
+
+- name: Check whether PAM is enabled
+  ansible.builtin.stat:
+    path: /etc/pam.d
+  register: __ci_pam_stat
+
+- name: Configuration support
+  ansible.builtin.assert:
+    that:
+      - __ci_pam_stat.stat.exists | default(false) is true
+    fail_msg: This system does not support PAM configuration!
+    success_msg: PAM configuration is supported
+
+- name: Enable MOTD
+  when: __ci_pam_stat.stat.exists is true
+  block:
+    - name: Check for authselect
+      ansible.builtin.stat:
+        path: /etc/authselect
+      register: __ci_authselect_stat
+
+    - name: Check for pam_motd
+      ansible.builtin.command:
+        cmd: grep -R "pam_motd" /etc/pam.d
+      register: __ci_cmd_grep_pam_motd
+      failed_when: false
+      changed_when: false
+
+    - name: Add pam_motd lines
+      when: __ci_cmd_grep_pam_motd.rc != 0
+      block:
+        - name: System uses authselect
+          when: __ci_authselect_stat.stat.exists is true
+          block:
+            - name: Look for authselect system profile
+              ansible.builtin.stat:
+                path: /etc/authselect/system-auth
+              register: __ci_authselect_system_auth_stat
+
+            - name: Enable pam_motd on login (system-auth)
+              become: true
+              ansible.builtin.lineinfile:
+                path: /etc/authselect/system-auth
+                line: |
+                  session     optional      pam_motd.so
+              when: __ci_authselect_system_auth_stat.stat.exists is true
+
+        - name: System doesn't use authselect (probably)
+          when: __ci_authselect_stat.stat.exists is false
+          block:
+            - name: Look for pam system-auth
+              ansible.builtin.stat:
+                path: /etc/pam.d/system-auth
+              register: __ci_pam_system_auth_stat
+
+            - name: Enable pam_motd on login (Rocky/AL2023)
+              become: true
+              when: __ci_pam_system_auth_stat.stat.exists is true
+              ansible.builtin.lineinfile:
+                path: /etc/pam.d/system-auth
+                line: |
+                  session     optional      pam_motd.so
+
+- name: Check for pam_motd
+  ansible.builtin.command:
+    cmd: grep -R "pam_motd" /etc/pam.d
+  register: system_cmd_grep_pam_motd
+  failed_when: false
+  changed_when: false
+

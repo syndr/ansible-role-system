@@ -1,0 +1,21 @@
+---
+# Packages for Amazon Linux 2023
+
+system_packages_base:
+  - git
+  - cronie
+  - cronie-anacron
+  - chrony
+  - jq
+  - mlocate
+  - nc
+  - python3-pip
+  - openssh-server
+  - rsync
+  - screen
+  - tmux
+  - vim
+
+# Override the default, as requests is installed in the default AMI through dnf, and is a dependency of cloud-init
+system_packages_pip3_base: []
+

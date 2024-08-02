@@ -1,0 +1,14 @@
+[main]
+cachedir=/var/cache/yum/$basearch/$releasever
+keepcache=0
+debuglevel=2
+logfile=/var/log/yum.log
+exactarch=1
+obsoletes=1
+gpgcheck=1
+plugins=1
+installonly_limit={{ system_retain_kernels }}
+{% if ansible_distribution == 'CentOS' %}
+distroverpkg=centos-release # Ensures yum can correctly resolve `releasever`
+{% endif %}
+

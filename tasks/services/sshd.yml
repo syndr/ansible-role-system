@@ -1,0 +1,38 @@
+---
+# Add configuration for SSH servers
+#
+
+- name: Generate ssh host keys
+  when: not (ansible_distribution == "Amazon" and ansible_distribution_major_version == "2")
+  become: true
+  ansible.builtin.command:
+    cmd: systemctl start sshd-keygen.target
+    creates: /etc/ssh/ssh_host_ed25519_key
+
+- name: Deploy sshd_config
+  become: true
+  # TODO: Fix molecule test support for system sshd configuration ⤋
+  when: org | default('') != 'molecule'
+  vars:
+    __system_sshd_config: "{{ system_sshd_config_defaults | combine(system_sshd_config, recursive=True) }}"
+  ansible.builtin.template:
+    src: etc/ssh/sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify:
+    - Restart sshd service
+
+- name: Service is enabled and running
+  become: true
+  ansible.builtin.service:
+    name: sshd
+    state: started
+    enabled: true
+  register: __system_sshd_service_output
+  until: __system_sshd_service_output is succeeded
+  retries: 12
+  delay: 5
+

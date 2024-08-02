@@ -1,0 +1,54 @@
+---
+# Configure the system package manager
+
+- name: Validate auto update configuration
+  ansible.builtin.assert:
+    that:
+      - (ansible_distribution | lower in __system_packages_errata_distros | lower if system_packages_auto_update_category != 'default' else true)
+    fail_msg: Unsupported distribution ({{ ansible_distribution }}) for auto update category '{{ system_packages_auto_update_category }}'!
+    success_msg: "Auto update category '{{ system_packages_auto_update_category }}' is supported."
+
+# On systems that use dnf, if yum is in /usr/bin, it will be a symlink to dnf
+- name: Configure System Package Manager
+  become: true
+  when: ansible_distribution in __system_pkgmgr_supported_distributions
+  block:
+    - name: Deploy dnf.conf for DNF-based distributions
+      ansible.builtin.template:
+        src: etc/dnf/dnf.conf.j2
+        dest: "{{ system_dnf_conf_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: ansible_pkg_mgr == 'dnf'
+      vars:
+        system_dnf_conf_path: "/etc/dnf/dnf.conf"
+
+    - name: Deploy yum.conf for YUM-based distributions
+      ansible.builtin.template:
+        src: etc/yum.conf.j2
+        dest: "{{ system_yum_conf_path }}"
+        owner: root
+        group: root
+        mode: '0644'
+      when: ansible_pkg_mgr == 'yum'
+      vars:
+        system_yum_conf_path: "/etc/yum.conf"
+
+    # TODO: Add support for system package manager configuration for APT-based distributions in system role
+
+- name: Configure package automatic updates
+  when: system_enable_packages_auto_update
+  block:
+    - name: Configure automatic package updates (dnf)
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.include_tasks: packages-update-dnf.yml
+
+    - name: Configure automatic package updates (yum)
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.include_tasks: packages-update-yum.yml
+
+    - name: Configure automatic package updates (apt)
+      when: ansible_os_family == "Debian"
+      ansible.builtin.include_tasks: packages-update-apt.yml
+

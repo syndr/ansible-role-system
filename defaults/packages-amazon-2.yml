@@ -1,0 +1,15 @@
+---
+# Packages for Amazon Linux
+
+system_packages_base:
+  - git
+  - jq
+  - mlocate
+  - nc
+  - python3-pip
+  - rsync
+  - screen
+  - tmux
+  - vim
+  - openssl11
+

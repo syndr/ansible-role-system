@@ -1,0 +1,114 @@
+---
+# System-wide log configuration
+
+- name: Check for presence of logrotate
+  ansible.builtin.command:
+    cmd: which logrotate
+  register: system_which_logrotate_cmd
+  failed_when: false
+  changed_when: false
+  environment:
+    PATH: /usr/local/sbin:/sbin:/usr/sbin:{{ ansible_env.PATH }}
+
+- name: Logrotate configuration
+  become: true
+  block:
+    - name: Logrotate primary config exists
+      ansible.builtin.template:
+        src: etc/logrotate.conf.j2
+        dest: /etc/logrotate.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Add drop-in logrotate config
+      ansible.builtin.template:
+        src: etc/logrotate.d/{{ item }}
+        dest: /etc/logrotate.d/{{ item | splitext | first }}
+        owner: root
+        group: root
+        mode: 0644
+      loop:
+        - messages.j2
+        - syslog.j2
+
+    - name: Cron config for running logrotate
+      block:
+        - name: Cron hourly directory exists
+          ansible.builtin.file:
+            path: /etc/cron.hourly
+            state: directory
+            owner: root
+            group: root
+            mode: 0755
+
+        - name: Hourly cron config exists
+          ansible.builtin.template:
+            src: etc/cron.hourly/logrotate.j2
+            dest: /etc/cron.hourly/logrotate
+            owner: root
+            group: root
+            mode: 0755
+
+        - name: Daily config does not exist
+          ansible.builtin.file:
+            path: /etc/cron.daily/logrotate
+            state: absent
+
+  when: system_which_logrotate_cmd.rc == 0
+
+# Systemd is considered a requirement for this role
+- name: Journald configuration
+  become: true
+  block:
+    - name: Check for journalctl binary
+      ansible.builtin.stat:
+        path: /usr/bin/journalctl
+      register: system_journalctl_stat
+
+    - name: Systemd is installed
+      ansible.builtin.assert:
+        that:
+          - system_journalctl_stat.stat.exists is true
+        fail_msg: The journalctl binary is not found! Is this a systemd enabled system?
+
+    # Logs won't persist across reboots without this folder
+    # Ownership isn't specified, as systemd often uses advanced file perms on this folder
+    - name: Journald persistant log folder exists
+      ansible.builtin.file:
+        path: /var/log/journal
+        state: directory
+
+    - name: Journald main config exists
+      ansible.builtin.template:
+        src: etc/systemd/journald.conf.j2
+        dest: /etc/systemd/journald.conf
+        owner: root
+        group: root
+        mode: 0644
+      notify:
+        - Restart journald service
+
+    - name: Journald drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Journald drop-ins are present
+      ansible.builtin.template:
+        src: etc/systemd/journald.conf.d/{{ item }}
+        dest: /etc/systemd/journald.conf.d/{{ item | splitext | first }}
+        owner: root
+        group: root
+        mode: 0644
+      notify:
+        - Restart journald service
+      loop:
+        - 00-base.conf.j2
+        - 05-journal-retention.conf.j2
+        - 05-journal-size.conf.j2
+        - 10-rate-limit.conf.j2
+

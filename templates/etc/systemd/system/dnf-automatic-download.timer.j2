@@ -1,0 +1,13 @@
+[Unit]
+Description=dnf-automatic-download timer
+# See comment in dnf-makecache.service
+ConditionPathExists=!/run/ostree-booted
+Wants=network-online.target
+
+[Timer]
+OnCalendar=*-*-* {{ system_packages_auto_update_weekly_schedule.hour }}:{{ '%02d' | format(system_packages_auto_update_weekly_schedule.minute) }}
+RandomizedDelaySec={{ system_packages_auto_update_random_wait }}m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

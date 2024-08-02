@@ -1,0 +1,16 @@
+---
+# Packages for CentOS Linux
+
+system_packages_base:
+  - git
+  - jq
+  - mlocate
+  - nc
+  - python3-pip
+  - python-requests
+  - rsync
+  - screen
+  - tmux
+  - vim
+  - openssl11
+

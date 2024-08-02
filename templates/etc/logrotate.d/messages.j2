@@ -1,0 +1,19 @@
+# Keep for {{ system_logging_retention_period }} days and rotate hourly
+/var/log/messages
+{
+    hourly
+    missingok
+    notifempty
+    compress
+    sharedscripts
+    minsize {{ system_logging_max_file_size[:-1] | int // 2 }}{{ system_logging_max_file_size[-1] }}
+    maxsize {{ system_logging_max_file_size }}
+    maxage {{ system_logging_retention_period }}
+
+    # Retention period is in days, this runs hourly and is a basic count, thus the high number
+    rotate {{ system_logging_retention_period | int * 24 }}
+
+    postrotate
+        /bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true
+    endscript
+}

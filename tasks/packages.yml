@@ -1,0 +1,34 @@
+---
+# Install applications from the system package manager
+
+- name: 🐜 Base packages are
+  ansible.builtin.debug:
+    var: system_packages_base
+    verbosity: 1
+
+- name: 🐜 Extra packages are
+  ansible.builtin.debug:
+    var: system_packages_extra
+    verbosity: 1
+
+- name: Install system packages
+  become: true
+  block:
+    - name: Packages are installed (dnf)
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.dnf:
+        name: "{{ system_packages_base + system_packages_extra }}"
+        state: present
+
+    - name: Packages are installed (yum)
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.yum:
+        name: "{{ system_packages_base + system_packages_extra }}"
+        state: present
+
+    - name: Packages are installed (apt)
+      when: ansible_os_family == "Debian"
+      ansible.builtin.apt:
+        name: "{{ system_packages_base + system_packages_extra }}"
+        state: present
+

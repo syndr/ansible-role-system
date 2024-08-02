@@ -1,0 +1,155 @@
+---
+# Configure the message of the day!
+
+- name: Check for supported environment
+  block:
+    - name: Check for update-motd
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/sbin:/usr/sbin"
+      ansible.builtin.command:
+        cmd: which update-motd
+      register: system_cmd_update_motd
+      failed_when: false
+      changed_when: false
+
+    - name: Check for pam_motd
+      ansible.builtin.command:
+        cmd: grep -R "pam_motd" /etc/pam.d
+      register: system_cmd_grep_pam_motd
+      failed_when: false
+      changed_when: false
+
+    - name: Attempt automatic MOTD configuration
+      ansible.builtin.include_tasks: motd.enable.yml
+      when:
+        - system_motd_pam_autoconfig is true
+        - system_cmd_grep_pam_motd.rc != 0
+        - system_cmd_update_motd.rc != 0
+
+    - name: Environment is unsupported
+      ansible.builtin.fail:
+        msg: MOTD configuration is unspported! The update-motd application or pam_motd PAM module is required!
+      when: not system_cmd_update_motd.rc == 0 and not system_cmd_grep_pam_motd.rc == 0
+
+  # TODO: Write this version info to a local ansible fact file
+- name: Get current commit hash of this project
+  when: system_motd_config_version is not truthy
+  block:
+    - name: Load automatic version information
+      delegate_to: 127.0.0.1
+      block:
+        - name: Check whether source playbook filesystem is in a git repository
+          ansible.builtin.command:
+            chdir: "{{ playbook_dir }}"
+            cmd: git rev-parse
+          register: __system_project_git
+          changed_when: false
+
+        - name: Repository status
+          ansible.builtin.assert:
+            that: __system_project_git.rc == 0
+            fail_msg: "The source playbook is not in a git repository. The MOTD configuration requires a git repository to automatically report version."
+            success_msg: "The source playbook is in a git repository."
+
+        - name: Load project revision data
+          ansible.builtin.command:
+            chdir: "{{ playbook_dir }}"
+            cmd: git rev-parse HEAD
+          register: __system_project_hash
+          changed_when: false
+
+        - name: Format revision data
+          ansible.builtin.set_fact:
+            __system_project_version: "{{ __system_project_hash.stdout | trim }}"
+      rescue:
+        - name: Automatic versioning failed
+          ansible.builtin.debug:
+            msg: "The source playbook is not in a git repository. The MOTD configuration requires a git repository to automatically report version."
+          when: __system_project_git.rc != 0
+
+        - name: Update version information
+          ansible.builtin.set_fact:
+            __system_project_version: undefined
+
+- name: Install for old update-motd configuration
+  when:
+    - system_cmd_update_motd.rc == 0
+    - system_cmd_grep_pam_motd.rc != 0
+  become: true
+  block:
+    - name: MOTD directory exists
+      become: true
+      ansible.builtin.file:
+        path: /etc/update-motd.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy shell script for update-motd
+      ansible.builtin.template:
+        src: etc/update-motd.d/{{ item }}.j2
+        dest: /etc/update-motd.d/{{ item }}
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - 30-banner
+
+    - name: Copy ansible timestamp shell script for update-motd
+      ansible.builtin.template:
+        src: etc/update-motd.d/90-ansible-warning.j2
+        dest: /etc/update-motd.d/90-ansible-warning
+        owner: root
+        group: root
+        mode: "0755"
+      changed_when: false   # yes, it's actually changed, but this is just the timestamp
+
+    - name: Remove blacklisted motd files
+      ansible.builtin.file:
+        path: /etc/update-motd.d/{{ item }}
+        state: absent
+      loop: "{{ system_motd_blacklist }}"
+
+    - name: Update legacy motd
+      ansible.builtin.command:
+        cmd: update-motd
+      changed_when: false
+
+- name: Install for pam_motd enabled system
+  when: system_cmd_grep_pam_motd.rc == 0
+  become: true
+  block:
+    - name: MOTD directory exists
+      ansible.builtin.file:
+        path: /etc/motd.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    # TODO: Change this header to be org independent
+    - name: Copy motd file
+      ansible.builtin.template:
+        src: etc/motd.d/{{ item }}.j2
+        dest: /etc/motd.d/{{ item }}
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - 30-banner
+
+    - name: Update Ansible timestamp motd file
+      ansible.builtin.template:
+        src: etc/motd.d/90-ansible-warning.j2
+        dest: /etc/motd.d/90-ansible-warning
+        owner: root
+        group: root
+        mode: "0644"
+      changed_when: false   # yes, it's actually changed, but this is just the timestamp
+
+    - name: Remove blacklisted motd files
+      ansible.builtin.file:
+        path: /etc/motd.d/{{ item }}
+        state: absent
+      loop: "{{ system_motd_blacklist }}"

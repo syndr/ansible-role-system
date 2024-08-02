@@ -1,0 +1,88 @@
+---
+# Manage an individual cron job
+#
+# Expected input:
+#  - __system_cron_job: The cron job configuration
+#
+
+- name: 🐜 Display cron job configuration
+  ansible.builtin.debug:
+    var: __system_cron_job
+    verbosity: 1
+
+- name: Cron job is present
+  when: __system_cron_job.state | default('present') == 'present'
+  vars:
+    __system_cron_job_values:
+      name: "{{ __system_cron_job.name }}"
+      cron_file: ansible_{{ __system_cron_job.name }}
+      job: "{{ __system_cron_job.job }}"
+      user: "{{ __system_cron_job.user | default('root') }}"
+      minute: "{{ __system_cron_job.minute | default(omit) }}"
+      hour: "{{ __system_cron_job.hour | default(omit) }}"
+      day: "{{ __system_cron_job.day | default(omit) }}"
+      weekday: "{{ __system_cron_job.weekday | default(omit) }}"
+      special_time: "{{ __system_cron_job.special_time | default('') }}"
+  block:
+    # TODO: Add support for removing env vars that are no longer defined in cron job definition
+    - name: Configure environment variables for cron job "{{ __system_cron_job.name }}"
+      when: __system_cron_job.env is defined
+      loop: "{{ __system_cron_job.env | dict2items }}"
+      loop_control:
+        loop_var: __system_cron_job_env_var_definition
+      vars:
+        __system_cron_job_env_var:
+          key: "{{ __system_cron_job_env_var_definition.key }}"
+          value: "{{ __system_cron_job_env_var_definition.value | default('') }}"
+          state: "{{ 'present' if __system_cron_job_env_var_definition.value | default(false) is truthy else 'absent' }}"
+      ansible.builtin.cron:
+        cron_file: "{{ __system_cron_job_values.cron_file }}"
+        name: "{{ __system_cron_job_env_var.key }}"
+        env: "{{ __system_cron_job_env_var.value }}"
+        state: __system_cron_job_env_var.state
+
+    - name: Configure day-of-month cron job "{{ __system_cron_job.name }}"
+      when:
+        - __system_cron_job.day is defined
+      ansible.builtin.cron:
+        name: "{{ __system_cron_job.name }}"
+        cron_file: "{{ __system_cron_job_values.cron_file }}"
+        job: "{{ __system_cron_job_values.job }}"
+        user: "{{ __system_cron_job_values.user }}"
+        minute: "{{ __system_cron_job_values.minute }}"
+        hour: "{{ __system_cron_job_values.hour }}"
+        day: "{{ __system_cron_job_values.day }}"
+        special_time: "{{ __system_cron_job_values.special_time }}"
+        state: present
+
+    - name: Configure day-of-week cron job "{{ __system_cron_job.name }}"
+      when:
+        - __system_cron_job.weekday is defined
+      ansible.builtin.cron:
+        name: "{{ __system_cron_job_values.name }}"
+        cron_file: "{{ __system_cron_job_values.cron_file }}"
+        job: "{{ __system_cron_job_values.job }}"
+        user: "{{ __system_cron_job_values.user }}"
+        minute: "{{ __system_cron_job_values.minute }}"
+        hour: "{{ __system_cron_job_values.hour }}"
+        weekday: "{{ __system_cron_job_values.weekday }}"
+        state: present
+
+    - name: Configure special-time cron job "{{ __system_cron_job.name }}"
+      when:
+        - __system_cron_job.special_time is defined
+      ansible.builtin.cron:
+        name: "{{ __system_cron_job_values.name }}"
+        cron_file: "{{ __system_cron_job_values.cron_file }}"
+        job: "{{ __system_cron_job_values.job }}"
+        user: "{{ __system_cron_job_values.user }}"
+        special_time: "{{ __system_cron_job_values.special_time }}"
+        state: present
+
+- name: Cron job is absent
+  when: __system_cron_job.state | default('present') == 'absent'
+  ansible.builtin.cron:
+    name: "{{ __system_cron_job.name }}"
+    state: absent
+    cron_file: ansible_{{ __system_cron_job.name }}
+

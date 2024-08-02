@@ -1,0 +1,88 @@
+---
+
+- name: Prepare controller for execution
+  hosts: localhost
+  tags: always
+  tasks:
+    - name: Configure for standalone role testing
+      ansible.builtin.include_role:
+        name: influxdata.molecule.prepare_controller
+      vars:
+        prepare_controller_project_type: role
+
+- name: Prepare target host for execution
+  hosts: molecule
+  tags: always
+  tasks:
+    ##
+    # Creating an admin service account for Molecule/Ansible to use for testing
+    #
+    #   - If you run Ansible as a service account (you should) on your hosts and
+    #     not as root, it is wise to also test as a non-root user!
+    #
+    #   - To use this account, add the following to any plays targeting test
+    #     infrastructure (such as in converge.yml):
+    #
+    #         vars:
+    #           ansible_user: molecule_runner
+    ##
+
+    - name: Create ansible service account
+      vars:
+        molecule_user: molecule_runner
+      become: true
+      block:
+        - name: Create ansible group
+          ansible.builtin.group:
+            name: "{{ molecule_user }}"
+
+        - name: Create ansible user
+          ansible.builtin.user:
+            name: "{{ molecule_user }}"
+            group: "{{ molecule_user }}"
+
+        - name: Sudoers.d directory exists
+          ansible.builtin.file:
+            path: /etc/sudoers.d
+            state: directory
+            owner: root
+            group: root
+            mode: 0751
+
+        - name: Ansible user has sudo
+          ansible.builtin.copy:
+            content: |
+              {{ molecule_user }}  ALL=(ALL)  NOPASSWD: ALL
+            dest: /etc/sudoers.d/ansible
+            owner: root
+            group: root
+            mode: 0600
+
+    - name: Get OS type
+      ansible.builtin.setup:
+        filter:
+          - ansible_distribution*
+
+    - name: Install package prerequisites (Fedora)
+      become: true
+      when: ansible_distribution | lower == 'fedora'
+      ansible.builtin.package:
+          name:
+            - procps-ng
+            - chrony
+            - openssh-server
+
+    - name: Install standalone python interpreter (AL2)
+      when: ansible_distribution == "Amazon" and ansible_distribution_major_version == "2"
+      ansible.builtin.include_role:
+        name: python_standalone
+
+    - name: Perform system prep (Rocky)
+      become: true
+      when: ansible_distribution == "Rocky"
+      block:
+        # This fails to start in the docker container for some reason
+        - name: Disable getty service (Rocky)
+          ansible.builtin.systemd_service:
+            name: getty@tty1
+

@@ -1,0 +1,142 @@
+---
+
+- name: Gather some host facts
+  tags: always
+  ansible.builtin.setup:
+    filter:
+      - 'ansible_date_time'
+      - 'ansible_distribution*'
+      - 'ansible_os_family'
+      - 'ansible_machine_id'
+      - 'ansible_user_id'
+      - 'ansible_*_mb'
+      - 'ansible_env'
+      - 'ansible_pkg_mgr'
+
+- name: Deploy configuration dependencies
+  tags:
+    - system-utils
+    - system-packages
+  when: system_enable_utils
+  ansible.builtin.include_tasks: utilities.yml
+
+# NOTE This assumes that the name of the host in the inventory file is the hostname by default
+- name: Set system hostname
+  tags: system-hostname
+  when: system_enable_hostname
+  become: true
+  ansible.builtin.hostname:
+    name: "{{ system_hostname }}"
+    use: systemd
+
+# Do this early, for more breadcrumbs if something later fails 💡
+- name: Set MOTD
+  tags: system-motd
+  when: system_enable_motd
+  block:
+    - name: Set Message of the Day
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/motd.yml"
+
+- name: Kernel options and the like
+  tags: system-kernel
+  when: system_enable_kernel
+  block:
+    - name: Configure sysctl settings
+      ansible.builtin.include_tasks: sysctl.yml
+
+# Install the System Package Manager before packages
+- name: Configure system package manager
+  tags: system-packages
+  when: system_enable_packages
+  block:
+    - name: Configure global package manager settings
+      ansible.builtin.include_tasks: package-manager.yml
+
+- name: Configure applications with package managers
+  tags: system-packages
+  when: system_enable_packages
+  block:
+    - name: Load default packages for OS
+      when: system_packages_base == 'DEFAULT'
+      block:
+        - name: Check for OS version-specific packages list
+          delegate_to: 127.0.0.1
+          ansible.builtin.stat:
+            path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+          register: __ac_packages_os_ver_specific_stat
+
+
+        - name: Load OS version-specific packages list
+          when: __ac_packages_os_ver_specific_stat.stat.exists
+          ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml
+
+        - name: Check for OS distribution packages list
+          delegate_to: 127.0.0.1
+          ansible.builtin.stat:
+            path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}.yml"
+          register: __ac_packages_os_specific_stat
+
+        - name: Load OS default packages list
+          when:
+            - __ac_packages_os_specific_stat.stat.exists
+            - not __ac_packages_os_ver_specific_stat.stat.exists
+          ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}.yml
+
+        - name: Validate packages list
+          ansible.builtin.assert:
+            that:
+              - system_packages_base is defined
+              - system_packages_base is mapping
+              - system_packages_base is not empty
+      rescue:
+        - name: Unable to load OS-specific default packages list
+          ansible.builtin.fail:
+            msg: You may need to create the defaults/packages-distro.yml file for this OS!
+
+    - name: Configure system package manager packages
+      when: system_packages_base is truthy
+      ansible.builtin.include_tasks: packages.yml
+
+- name: Install pip3 packages
+  tags: system-pip-packages
+  when: system_enable_pip_packages
+  block:
+    - name: Install pip3 packages
+      when: system_packages_pip3_base is truthy
+      ansible.builtin.include_tasks: packages-pip3.yml
+
+- name: Configure services
+  tags: system-services
+  when: system_enable_services
+  block:
+    - name: Configure systemd services
+      ansible.builtin.include_tasks: services.yml
+
+- name: Configure cron jobs
+  tags: system-cron
+  when: system_enable_cron
+  block:
+    - name: Configure cron jobs
+      ansible.builtin.include_tasks: cron.yml
+
+- name: Configure shells
+  tags: system-shell
+  when: system_enable_shell
+  block:
+    - name: Configure bash shell
+      ansible.builtin.include_tasks: bash.yml
+
+- name: Configure logging
+  tags: system-logging
+  when: system_enable_logging
+  block:
+    - name: Configure system logging
+      ansible.builtin.include_tasks: logging.yml
+
+- name: Configure timezone
+  tags: system-timezone
+  when: system_enable_timezone
+  block:
+    - name: Configure system timezone
+      ansible.builtin.include_tasks: timezone.yml
+

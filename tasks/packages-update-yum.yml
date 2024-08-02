@@ -1,0 +1,76 @@
+---
+
+- name: Configure package auto-update (yum)
+  when: system_enable_packages_auto_update
+  become: true
+  block:
+    - name: Install yum-cron
+      ansible.builtin.yum:
+        name: yum-cron
+        state: present
+
+    - name: Configure yum-cron
+      loop:
+        - yum-cron-weekly.conf
+        - yum-cron.conf      # daily cfg
+        - yum-cron-hourly.conf
+      loop_control:
+        loop_var: __system_yum_cron_conf
+      ansible.builtin.template:
+        src: etc/yum/{{ __system_yum_cron_conf }}.j2
+        dest: /etc/yum/{{ __system_yum_cron_conf }}
+        owner: root
+        group: root
+        mode: '0644'
+
+    # TODO: Ensure that yum-cron job runs are not generating emails in the local mailbox
+
+    - name: Deploy cron relative schedule
+      loop:
+        - cron.hourly/0yum-hourly.cron
+        - cron.daily/0yum-daily.cron
+      loop_control:
+        loop_var: __system_cron_job
+      ansible.builtin.template:
+        src: etc/{{ __system_cron_job }}.j2
+        dest: /etc/{{ __system_cron_job }}
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Deploy weekly update job
+      block:
+        - name: Deploy weekly update script
+          ansible.builtin.template:
+            src: usr/local/bin/yum-cron-update.sh.j2
+            dest: /usr/local/bin/yum-cron-update.sh
+            owner: root
+            group: root
+            mode: '0755'
+
+        - name: Deploy cron absolute schedule
+          vars:
+            __system_cron_job:
+              name: yum-cron-weekly
+              job: /usr/local/bin/yum-cron-update.sh
+              minute: "{{ system_packages_auto_update_weekly_schedule.minute }}"
+              hour: "{{ system_packages_auto_update_weekly_schedule.hour }}"
+              weekday: "{{ __system_day_of_week_number[system_packages_auto_update_weekly_schedule.weekday] }}"
+              state: present
+          ansible.builtin.include_tasks: cron-job.yml
+
+    - name: Enable and start yum-cron
+      become: true
+      ansible.builtin.systemd:
+        name: yum-cron
+        enabled: true
+        state: started
+
+- name: Disable package auto-update (yum)
+  when: not system_enable_packages_auto_update
+  become: true
+  ansible.builtin.systemd:
+    name: yum-cron
+    enabled: false
+    state: stopped
+

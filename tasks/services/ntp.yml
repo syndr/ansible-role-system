@@ -1,0 +1,39 @@
+---
+
+- name: Check for chronyd executable
+  ansible.builtin.stat:
+    path: /usr/sbin/chronyd
+  register: __system_chronyd_stat
+
+- name: Configure chronyd
+  become: yes
+  block:
+    - name: Adding custom NTP servers
+      ansible.builtin.template:
+        src: templates/etc/chrony.conf.j2
+        dest: /etc/chrony.conf
+        owner: root
+        group: chrony
+        mode: 0644
+        backup: true
+      when: system_ntp_servers is truthy
+      notify:
+        - Restart chronyd
+
+    - name: Chronyd service is enabled and running
+      ansible.builtin.service:
+        name: chronyd
+        state: started
+        enabled: true
+
+    - name: Set ntp as configured
+      ansible.builtin.set_fact:
+        system_ntp_configured: true
+  when: __system_chronyd_stat.stat.exists is true
+
+- name: A time server is configured
+  ansible.builtin.assert:
+    that:
+      - system_ntp_configured | default(false) is true
+    fail_msg: No applicable configuration of time has been applied! Do you have a supported ntp service installed?
+

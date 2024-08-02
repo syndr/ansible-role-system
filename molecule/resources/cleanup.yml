@@ -1,0 +1,13 @@
+---
+# The cleanup.yml playbook should be used to remove any test infrastructure that was created by this test process
+#  and is not present within the instance itself (IE: the docker container created by Molecule). For example, it
+#  could be used to remove AWS infrastructure created as part of this test and that should not persist.
+
+- name: Remove external test infrastructure
+  hosts: molecule
+  tasks:
+    - name: Cleanup tasks not configured
+      delegate_to: localhost
+      ansible.builtin.debug:
+        msg: Add your cleanup tasks here as required!
+
