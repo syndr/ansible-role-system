@@ -43,6 +43,32 @@
 
     - name: Load system role
       tags: always
+      vars:
+        system_cron_jobs:
+          - name: "absolute_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+          - name: "absolute_scheduling_alternate_user_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "{{ ansible_user }}"
+          - name: "relative_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            weekday: 3
+            user: "root"
+          - name: "special_scheduling_test"
+            job: "echo 'Hello, World!'"
+            special_time: "hourly"
+            user: "root"
       ansible.builtin.include_role:
         name: system
 
