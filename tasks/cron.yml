@@ -11,14 +11,15 @@
       - __system_cron_job.name | regex_search('^[a-zA-Z0-9_-]+$')
       - __system_cron_job.job is defined
       - __system_cron_job.user | default(root) is truthy
-      - __system_cron_job.minute is defined if __system_cron_job.special_time is not defined else true
-      - __system_cron_job.hour is defined if __system_cron_job.special_time is not defined else true
-      - __system_cron_job.day is defined if __system_cron_job.special_time is not defined else true
-      - (__system_cron_job.special_time | default('') in ['reboot', 'yearly', 'annually', 'monthly', 'weekly', 'daily', 'hourly']
+      - ((__system_cron_job.minute is defined) if __system_cron_job.special_time is not defined else true)
+      - ((__system_cron_job.hour is defined) if __system_cron_job.special_time is not defined else true)
+      - ((__system_cron_job.day is defined) if (__system_cron_job.special_time is not defined and
+        __system_cron_job.weekday is not defined) else true)
+      - ((__system_cron_job.special_time | default('') in ['reboot', 'yearly', 'annually', 'monthly', 'weekly', 'daily', 'hourly'])
         if __system_cron_job.special_time is defined else true)
-      - (__system_cron_job.weekday | regex_search('^[0-6*]$') is truthy if __system_cron_job.weekday is defined else true)
+      - ((__system_cron_job.weekday | regex_search('^[0-6*]$') is truthy) if __system_cron_job.weekday is defined else true)
       - __system_cron_job.state | default('present') in ['present', 'absent']
-      - __system_cron_job.env is mapping if __system_cron_job.env is defined else true
+      - ((__system_cron_job.env is mapping) if __system_cron_job.env is defined else true)
     fail_msg: "Invalid cron job configuration provided! Please check your configuration and try again."
     success_msg: "Cron job configuration validated successfully."
 

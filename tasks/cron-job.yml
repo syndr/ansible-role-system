@@ -12,6 +12,7 @@
 
 - name: Cron job is present
   when: __system_cron_job.state | default('present') == 'present'
+  become: true
   vars:
     __system_cron_job_values:
       name: "{{ __system_cron_job.name }}"
@@ -52,7 +53,6 @@
         minute: "{{ __system_cron_job_values.minute }}"
         hour: "{{ __system_cron_job_values.hour }}"
         day: "{{ __system_cron_job_values.day }}"
-        special_time: "{{ __system_cron_job_values.special_time }}"
         state: present
 
     - name: Configure day-of-week cron job "{{ __system_cron_job.name }}"
