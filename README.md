@@ -44,6 +44,7 @@ system_enable_packages: true
 
 # Manage automatic package updates using yum-cron, dnf-automatic, etc.
 #  - Requires system_enable_packages to be enabled
+#  - Requires system_enable_utilities to be enabled
 system_enable_packages_auto_update: true
 
 # Manage system services such as NTP and SSH
@@ -66,6 +67,9 @@ system_enable_timezone: true
 
 # Manage system cron jobs
 system_enable_cron: true
+
+# Deploy system utility scripts
+system_enable_utils: true
 
 # }}}
 

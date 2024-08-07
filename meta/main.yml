@@ -38,9 +38,12 @@ galaxy_info:
 
   galaxy_tags:
     - kernel
+    - bash
     - systemd
     - logging
-    - pkg
+    - packages
+    - timezone
+    - motd
 
     #
     # NOTE: A tag is limited to a single word comprised of alphanumeric characters.
