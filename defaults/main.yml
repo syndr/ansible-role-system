@@ -198,11 +198,32 @@ system_ntp_servers:
 #  - Provide values as desired to override defaults in the sshd_config file
 #  - Values are in the format of 'ConfigOption: value'
 #    - For 'yes' or 'no' values, take care to enclose them in single quotes!
+#  - For any keys that are repeated more than once (duplicated), use a list under the key
+#    IE: Hostkey: [ '/etc/ssh/ssh_host_rsa_key', '/etc/ssh/ssh_host_ecdsa_key' ]
 system_sshd_config:
+  ChallengeResponseAuthentication: 'no'
+  GSSAPIAuthentication: 'yes'
+  GSSAPICleanupCredentials: 'no'
+  Hostkey:
+    - /etc/ssh/ssh_host_rsa_key
+    - /etc/ssh/ssh_host_ecdsa_key
+    - /etc/ssh/ssh_host_ed25519_key
+  IgnoreRhosts: 'yes'
+  LogLevel: INFO
+  MaxAuthTries: 6
+  MaxSessions: 30
+  PasswordAuthentication: 'no'
   PermitRootLogin: 'no'
   Protocol: 2
-  IgnoreRhosts: 'yes'
-  PasswordAuthentication: 'no'
+  SyslogFacility: AUTHPRIV
+  UsePAM: 'yes'
+  X11Forwarding: 'no'
+  AcceptEnv:
+    - LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
+    - LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
+    - LC_IDENTIFICATION LC_ALL LANGUAGE
+    - XMODIFIERS
+  UseDNS: 'no'
 
 # Default configuration settings that will always be applied unless overridden
 system_sshd_config_defaults:

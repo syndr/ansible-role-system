@@ -11,8 +11,6 @@
 
 - name: Deploy sshd_config
   become: true
-  # TODO: Fix molecule test support for system sshd configuration ⤋
-  when: org | default('') != 'molecule'
   vars:
     __system_sshd_config: "{{ system_sshd_config_defaults | combine(system_sshd_config, recursive=True) }}"
   ansible.builtin.template:
