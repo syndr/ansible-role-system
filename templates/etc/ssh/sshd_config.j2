@@ -1,6 +1,12 @@
 # WARNING: THIS FILE IS PROVISIONED BY ANSIBLE!!! DO NOT MODIFY!!!
 
 {% for key, value in __system_sshd_config.items() %}
+{% if value | type_debug == 'list' %}
+{% for listvalue in value %}
+{{ key }} {{ listvalue | string }}
+{% endfor %}
+{% else %}
 {{ key }} {{ value | string }}
+{% endif %}
 {% endfor %}
 
