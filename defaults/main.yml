@@ -84,7 +84,7 @@ system_motd_banner: |
 
 # The version of the motd configuration. If set to an empty string, the git hash
 #  of the project containing the originating playbook will be used.
-system_motd_config_version: "{{ awx_project_revision | default('') }}"
+system_motd_config_version: "{{ awx_project_revision | default(lookup('env', 'PROJECT_VERSION') | default('')) }}"
 
 # List of filenames that should be removed if they're in the update-motd.d directory
 system_motd_blacklist: []
