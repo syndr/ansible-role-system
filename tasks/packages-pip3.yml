@@ -1,5 +1,10 @@
 ---
 
+- name: OS support warning
+  when: ansible_distribution | lower == 'ubuntu'
+  ansible.builtin.debug:
+    msg: "WARNING: global pip3 packages are not supported on Ubuntu!"
+
 - name: Install Packages with pip3
   become: true
   ansible.builtin.pip:
@@ -8,5 +13,7 @@
     state: present
     executable: pip3
   loop: "{{ (system_packages_pip3_base | default({}) | combine(system_packages_pip3_extra | default({})) | dict2items) }}"
-  when: (system_packages_pip3_base | default({}) | length > 0) or (system_packages_pip3_extra | default({}) | length > 0)
+  when:
+    - (system_packages_pip3_base | default({}) | length > 0) or (system_packages_pip3_extra | default({}) | length > 0)
+    - ansible_distribution | lower != 'ubuntu'
 

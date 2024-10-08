@@ -2,6 +2,7 @@
 # Configure the system package manager
 
 - name: Validate auto update configuration
+  when: system_enable_packages_auto_update
   ansible.builtin.assert:
     that:
       - (ansible_distribution | lower in __system_packages_errata_distros | lower if system_packages_auto_update_category != 'default' else true)

@@ -1,0 +1,23 @@
+---
+# Write out an ansible local facts file
+# This file is used to store facts that are generated during the playbook run
+
+- name: Ansible facts directory exists
+  become: true
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Store system facts
+  become: true
+  ansible.builtin.copy:
+    content: "{{ __system_ansible_local_facts | to_nice_json }}"
+    dest: /etc/ansible/facts.d/system.fact
+    owner: root
+    group: root
+    mode: "0644"
+  changed_when: false   # ssshhhhh...
+
