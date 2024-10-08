@@ -1,0 +1,20 @@
+---
+# Configure system application alternatives, as done by the 'update-alternatives' tool
+#
+# Required vars:
+#  - system_alternatives: A list of dictionaries containing the alternative to configure
+#
+
+- name: Configure system alternative
+  loop: "{{ system_alternatives }}"
+  loop_control:
+    loop_var: __system_alternative
+    label: "{{ __system_alternative.name }}"
+  become: true
+  community.general.alternatives:
+    name: "{{ __system_alternative.name }}"
+    link: "{{ __system_alternative.link }}"
+    path: "{{ __system_alternative.path }}"
+    priority: "{{ __system_alternative.priority | default(50) }}"
+    state: "{{ __system_alternative.state | default('auto') }}"
+

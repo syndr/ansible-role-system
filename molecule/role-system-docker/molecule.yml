@@ -25,6 +25,15 @@ platforms:
     privileged: True
     hostvars:
       system_enable_hostname: false   # Can't replace hostname file in docker containers
+  - name: role-system-ubuntu2204
+    type: docker
+    image: geerlingguy/docker-ubuntu2204-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
+      system_enable_hostname: false   # Can't replace hostname file in docker containers
+      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
 provisioner:
   name: ansible
   log: True

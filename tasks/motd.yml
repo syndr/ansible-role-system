@@ -3,7 +3,7 @@
 
 - name: Check for supported environment
   block:
-    - name: Check for update-motd
+    - name: Check for update-motd command
       environment:
         PATH: "{{ ansible_env.PATH }}:/usr/local/sbin:/usr/sbin"
       ansible.builtin.command:
@@ -11,6 +11,12 @@
       register: system_cmd_update_motd
       failed_when: false
       changed_when: false
+
+    # Ubuntu has an implementation of update-motd using pam_motd
+    - name: Check for update-motd folder
+      ansible.builtin.stat:
+        path: /etc/update-motd.d
+      register: system_stat_update_motd_d
 
     - name: Check for pam_motd
       ansible.builtin.command:
@@ -71,10 +77,8 @@
           ansible.builtin.set_fact:
             __system_project_version: undefined
 
-- name: Install for old update-motd configuration
-  when:
-    - system_cmd_update_motd.rc == 0
-    - system_cmd_grep_pam_motd.rc != 0
+- name: Install for update-motd configuration
+  when: system_cmd_update_motd.rc == 0 or system_stat_update_motd_d.stat.exists
   become: true
   block:
     - name: MOTD directory exists
@@ -86,15 +90,32 @@
         group: root
         mode: "0755"
 
-    - name: Copy shell script for update-motd
-      ansible.builtin.template:
-        src: etc/update-motd.d/{{ item }}.j2
-        dest: /etc/update-motd.d/{{ item }}
-        owner: root
-        group: root
-        mode: "0755"
-      loop:
-        - 30-banner
+    - name: Deploy static messages (for legacy systems)
+      when: system_cmd_update_motd.rc == 0
+      block:
+        # Deploy banner message if it doesn't exist in config
+        - name: Deploy banner message (autoconfig)
+          when: system_motd_static_messages | selectattr('name', 'search', '\d+-banner') | list | length == 0
+          vars:
+            __system_motd_message: "{{ system_motd_banner }}"
+          ansible.builtin.template:
+            src: etc/update-motd.d/static_msg.j2
+            dest: /etc/update-motd.d/30-banner
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Deploy static message for update-motd
+          loop: "{{ system_motd_static_messages }}"
+          loop_control:
+            loop_var: __system_motd_item
+            label: "{{ __system_motd_item.name }}"
+          ansible.builtin.template:
+            src: etc/update-motd.d/static_msg.j2
+            dest: /etc/update-motd.d/{{ __system_motd_item.name }}
+            owner: root
+            group: root
+            mode: "0755"
 
     - name: Copy ansible timestamp shell script for update-motd
       ansible.builtin.template:
@@ -112,6 +133,7 @@
       loop: "{{ system_motd_blacklist }}"
 
     - name: Update legacy motd
+      when: system_cmd_update_motd.rc == 0
       ansible.builtin.command:
         cmd: update-motd
       changed_when: false
@@ -128,16 +150,29 @@
         group: root
         mode: "0755"
 
-    # TODO: Change this header to be org independent
-    - name: Copy motd file
+    # Deploy banner message if it doesn't exist in config
+    - name: Deploy banner message (autoconfig)
+      when: system_motd_static_messages | selectattr('name', 'search', '\d+-banner') | list | length == 0
+      vars:
+        __system_motd_message: "{{ system_motd_banner }}"
       ansible.builtin.template:
-        src: etc/motd.d/{{ item }}.j2
-        dest: /etc/motd.d/{{ item }}
+        src: etc/motd.d/static_msg.j2
+        dest: /etc/motd.d/30-banner
         owner: root
         group: root
         mode: "0644"
-      loop:
-        - 30-banner
+
+    - name: Copy motd file
+      loop: "{{ system_motd_static_messages }}"
+      loop_control:
+        loop_var: __system_motd_item
+        label: "{{ __system_motd_item.name }}"
+      ansible.builtin.template:
+        src: etc/motd.d/static_msg.j2
+        dest: /etc/motd.d/{{ __system_motd_item.name }}
+        owner: root
+        group: root
+        mode: "0644"
 
     - name: Update Ansible timestamp motd file
       ansible.builtin.template:

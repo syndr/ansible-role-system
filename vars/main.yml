@@ -29,3 +29,43 @@ __system_pkgmgr_supported_distributions:
   - Rocky
   - Amazon
 
+# Service names that differ between distributions
+#  - Dictionary of service names in the format:
+#      <distribution>:
+#        <service_generic_name>: <service_name>
+__system_compat_services_list:
+  ubuntu:
+    cron: cron
+    ssh: ssh
+  default:
+    cron: crond
+    ssh: sshd
+
+# Service names that differ between distributions
+__system_compat_services: >-
+  {{ __system_compat_services_list[ansible_distribution | default('default') | lower] | default(__system_compat_services_list['default']) }}
+
+# Default configuration for the message of the day
+#  - Each subkey should contain default values and any distribution-specific overrides
+__system_compat_motd_cfg:
+  # Files to remove from the motd directory if found
+  remove_files:
+    amazon:
+      - 29-ecs-banner-begin
+      - 31-ecs-banner-finish
+    ubuntu:
+      - 10-help-text
+      - 50-motd-news
+      - 90-updates-available
+      - 91-contract-ua-esm-status
+    default: []
+
+# Motd blacklist for this distribution
+__system_compat_motd_blacklist: >
+  {{ __system_compat_motd_cfg.remove_files[ansible_distribution | default('default') | lower] | default(__system_compat_motd_cfg.remove_files['default']) }}
+
+# Facts to be stored in the local ansible fact file
+__system_ansible_local_facts:
+  version: "{{ __system_project_version }}"
+  timestamp: "{{ ansible_date_time.epoch }}"
+

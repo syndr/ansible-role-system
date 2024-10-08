@@ -29,13 +29,18 @@
     loop_var: __system_cron_job
   ansible.builtin.include_tasks: cron-job.yml
 
-- name: Cronie service is enabled and running
+- name: Show compat services
+  ansible.builtin.debug:
+    var: __system_compat_services
+    verbosity: 1
+
+- name: Configure cron service
+  when: system_enable_cron
   become: true
   ansible.builtin.systemd_service:
-    name: crond
+    name: "{{ __system_compat_services.cron }}"
     enabled: true
     state: started
-    daemon_reload: true
 
 - name: Load running services
   # Become is required on Fedora 40 due to "can't open file" error
@@ -50,8 +55,8 @@
 - name: Validate cron status
   ansible.builtin.assert:
     that:
-      - ansible_facts.services['crond.service'].state | default('absent') == 'running'
-      - ansible_facts.services['crond.service'].status | default('absent') == 'enabled'
+      - ansible_facts.services[__system_compat_services.cron + '.service'].state | default('absent') == 'running'
+      - ansible_facts.services[__system_compat_services.cron + '.service'].status | default('absent') == 'enabled'
     fail_msg: "Cron service is not enabled or running!"
     success_msg: "Cron service is enabled and running."
 

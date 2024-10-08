@@ -1,0 +1,13 @@
+---
+# Packages for Ubuntu Linux
+
+system_packages_base:
+  - git
+  - python3-pip
+  - tmux
+  - vim
+  - anacron
+  - cron
+  - openssh-server
+  - chrony
+
