@@ -105,7 +105,7 @@
             mode: "0755"
 
         - name: Deploy static message for update-motd
-          loop: "{{ system_motd_static_messages }}"
+          loop: "{{ system_motd_static_messages | rejectattr('state', 'eq', 'absent') }}"
           loop_control:
             loop_var: __system_motd_item
             label: "{{ __system_motd_item.name }}"
@@ -127,10 +127,10 @@
       changed_when: false   # yes, it's actually changed, but this is just the timestamp
 
     - name: Remove blacklisted motd files
+      loop: "{{ system_motd_blacklist + (system_motd_static_messages | selectattr('state', 'eq', 'absent') | map(attribute='name') | list) }}"
       ansible.builtin.file:
         path: /etc/update-motd.d/{{ item }}
         state: absent
-      loop: "{{ system_motd_blacklist }}"
 
     - name: Update legacy motd
       when: system_cmd_update_motd.rc == 0
@@ -163,7 +163,7 @@
         mode: "0644"
 
     - name: Copy motd file
-      loop: "{{ system_motd_static_messages }}"
+      loop: "{{ system_motd_static_messages | rejectattr('state', 'eq', 'absent') }}"
       loop_control:
         loop_var: __system_motd_item
         label: "{{ __system_motd_item.name }}"
@@ -184,7 +184,8 @@
       changed_when: false   # yes, it's actually changed, but this is just the timestamp
 
     - name: Remove blacklisted motd files
+      loop: "{{ system_motd_blacklist + (system_motd_static_messages | selectattr('state', 'eq', 'absent') | map(attribute='name') | list) }}"
       ansible.builtin.file:
         path: /etc/motd.d/{{ item }}
         state: absent
-      loop: "{{ system_motd_blacklist }}"
+
