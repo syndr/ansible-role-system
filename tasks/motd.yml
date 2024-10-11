@@ -37,7 +37,6 @@
         msg: MOTD configuration is unspported! The update-motd application or pam_motd PAM module is required!
       when: not system_cmd_update_motd.rc == 0 and not system_cmd_grep_pam_motd.rc == 0
 
-  # TODO: Write this version info to a local ansible fact file
 - name: Get current commit hash of this project
   when: system_motd_config_version is not truthy
   block:
@@ -118,9 +117,10 @@
             mode: "0755"
 
     - name: Copy ansible timestamp shell script for update-motd
+      when: system_cmd_update_motd.rc == 0
       ansible.builtin.template:
-        src: etc/update-motd.d/90-ansible-warning.j2
-        dest: /etc/update-motd.d/90-ansible-warning
+        src: etc/update-motd.d/95-config-status.j2
+        dest: /etc/update-motd.d/95-config-status
         owner: root
         group: root
         mode: "0755"
@@ -176,8 +176,8 @@
 
     - name: Update Ansible timestamp motd file
       ansible.builtin.template:
-        src: etc/motd.d/90-ansible-warning.j2
-        dest: /etc/motd.d/90-ansible-warning
+        src: etc/motd.d/95-config-status.j2
+        dest: /etc/motd.d/95-config-status
         owner: root
         group: root
         mode: "0644"

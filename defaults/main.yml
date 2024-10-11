@@ -4,8 +4,6 @@
 # TODO: Configure network settings
 #backnet_host: "{{ inventory_hostname }}-internal"
 
-## Role configuration ## {{{
-
 ### Enable/Disable Role Features ## {{{
 # Set the system hostname
 system_enable_hostname: true
@@ -100,15 +98,26 @@ system_motd_config_version: "{{ awx_project_revision | default(lookup('env', 'PR
 #
 # - The 'banner' name is reserved for the MOTD banner message, however its ordering can be modified
 #   here if desired by changing the '#' part of the name
-# - the '90-ansible-warning' message is reserved for the ansible timestamp warning
+# - the '95-config-status' message is reserved for the configuration data set by 'system_motd_status_data'
 system_motd_static_messages:
   - name: 30-banner
     content: "{{ system_motd_banner }}"
+    state: present
+  - name: 90-ansible-warning
+    content: "WARNING: This host is managed by Ansible! Manual changes may revert automagically!"
     state: present
 
 # List of filenames that should be removed if they're in the update-motd.d directory
 # - Defaults to an internal list of known conflicting default files
 system_motd_blacklist: "{{ __system_compat_motd_blacklist | default([]) }}"
+
+# Title of 'status' section in the MOTD
+system_motd_status_header: "Configuration Status:"
+
+# Data that should be included in the 'status' section of the MOTD
+#  - Store as a dictionary of key-value pairs, where the key is the title and the value is the data
+system_motd_status_data:
+  Role: "{{ role | default('base') }}"
 
 # Should the system attempt to automatically enable the MOTD
 # - This will attempt to enable the MOTD if PAM is available and the 'update-motd' command is not available
