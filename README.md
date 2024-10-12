@@ -33,46 +33,51 @@ Role Variables
 
 ```yaml
 ### Enable/Disable Role Features ## {{{
+#
+
+# Should the role configuration features default to enabled or disabled
+system_default_enable: true
+
 # Set the system hostname
-system_enable_hostname: true
+system_enable_hostname: "{{ system_default_enable }}"
 
 # Manage kernel options, etc.
-system_enable_kernel: true
+system_enable_kernel: "{{ system_default_enable }}"
 
 # Manage packages on the system
-system_enable_packages: true
+system_enable_packages: "{{ system_default_enable }}"
 
 # Manage automatic package updates using yum-cron, dnf-automatic, etc.
 #  - Requires system_enable_packages to be enabled
 #  - Requires system_enable_utilities to be enabled
-system_enable_packages_auto_update: true
+system_enable_packages_auto_update: "{{ system_default_enable }}"
 
 # Configure system application alternatives, as done by the 'update-alternatives' tool
-system_enable_alternatives: true
+system_enable_alternatives: "{{ system_default_enable }}"
 
 # Manage system services such as NTP and SSH
-system_enable_services: true
+system_enable_services: "{{ system_default_enable }}"
 
 # Manage system shell configuration, such as aliases, etc.
-system_enable_shell: true
+system_enable_shell: "{{ system_default_enable }}"
 
 # Manage system MOTD
-system_enable_motd: true
+system_enable_motd: "{{ system_default_enable }}"
 
 # Manage system logging using logrotate, journald
-system_enable_logging: true
+system_enable_logging: "{{ system_default_enable }}"
 
 # Install system-wide pip packages
-system_enable_pip_packages: true
+system_enable_pip_packages: "{{ system_default_enable }}"
 
 # Manage system timezone
-system_enable_timezone: true
+system_enable_timezone: "{{ system_default_enable }}"
 
 # Manage system cron jobs
-system_enable_cron: true
+system_enable_cron: "{{ system_default_enable }}"
 
 # Deploy system utility scripts
-system_enable_utils: true
+system_enable_utils: "{{ system_default_enable }}"
 
 # Install location for system tools used by the configuration deployed by this role
 # NOTE: These should be always be installed outside of extraordinary circumstances
@@ -337,11 +342,16 @@ Example Playbook
         system_enable_hostname: true
         system_enable_kernel: true
         system_enable_packages: true
+        system_enable_packages_auto_update: true
+        system_enable_alternatives: true
         system_enable_services: true
         system_enable_shell: true
         system_enable_motd: true
         system_enable_logging: true
         system_enable_pip_packages: true
+        system_enable_timezone: true
+        system_enable_cron: true
+        system_enable_utils: true
 ```
 
 License

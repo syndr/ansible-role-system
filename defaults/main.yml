@@ -1,9 +1,6 @@
 ---
 # defaults file for system
 
-# TODO: Configure network settings
-#backnet_host: "{{ inventory_hostname }}-internal"
-
 ### Enable/Disable Role Features ## {{{
 #
 
