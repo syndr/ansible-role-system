@@ -21,11 +21,19 @@
           AuthorizedKeysFile: .ssh/authorized_keys
         ansible_python_interpreter: /usr/local/bin/python3.10
 
-    - name: Run system role with non-default settings
+    - name: Run system role with only MOTD enabled
       ansible.builtin.include_role:
         name: system
       vars:
         ansible_user: molecule_runner
-        system_enable_hostname: false   # Can't replace hostname file in docker containers
         system_motd_config_version: molecule-ci-test
+        system_default_enable: false
+        system_enable_motd: true
+
+    - name: Verify execution state
+      ansible.builtin.assert:
+        that:
+          - system_ntp_configured is not defined
+        fail_msg: "NTP configuration should not be enabled! Something went wrong!"
+        success_msg: "NTP configuration is disabled as expected!"
 

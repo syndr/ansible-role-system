@@ -9,6 +9,17 @@
     cmd: systemctl start sshd-keygen.target
     creates: /etc/ssh/ssh_host_ed25519_key
 
+# Workaround for "Missing privilege separation directory" error that may occur on Ubuntu
+- name: Create run/sshd directory (workaround)
+  when: ansible_distribution | lower == "ubuntu"
+  become: true
+  ansible.builtin.file:
+    path: /var/run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Deploy sshd_config
   become: true
   vars:
@@ -26,7 +37,7 @@
 - name: Service is enabled and running
   become: true
   ansible.builtin.service:
-    name: sshd
+    name: "{{ __system_compat_services.ssh }}"
     state: started
     enabled: true
   register: __system_sshd_service_output

@@ -7,8 +7,6 @@
       - 'ansible_date_time'
       - 'ansible_distribution*'
       - 'ansible_os_family'
-      - 'ansible_machine_id'
-      - 'ansible_user_id'
       - 'ansible_*_mb'
       - 'ansible_env'
       - 'ansible_pkg_mgr'
@@ -139,4 +137,18 @@
   block:
     - name: Configure system timezone
       ansible.builtin.include_tasks: timezone.yml
+
+- name: Configure alternatives
+  tags: system-alternatives
+  when: system_enable_alternatives
+  block:
+    - name: Configure system alternatives
+      ansible.builtin.include_tasks: alternatives.yml
+
+# We always do this unless it is explicitly disabled via tags
+- name: Store system configuration data
+  tags:
+    - always
+    - system-facts
+  ansible.builtin.include_tasks: ansible-facts.yml
 
