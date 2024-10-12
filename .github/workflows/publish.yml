@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build and Deploy Role
-        uses: buluma/galaxy-action@v10.30.23
+        uses: averagebit/action-galaxy@1.0.0
         with:
-          galaxy_api_key: '${{ secrets.GALAXY_API_KEY }}'
+          galaxy_token: '${{ secrets.GALAXY_API_KEY }}'
 
