@@ -73,6 +73,8 @@
           - name: test_alternative
             link: /usr/bin/smash
             path: /usr/bin/bash
+        system_path_append:
+          - /opt/bin
       ansible.builtin.include_role:
         name: system
 

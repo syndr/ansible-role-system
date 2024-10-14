@@ -27,10 +27,6 @@ on:
         required: false
         type: number
         default: 360
-      potato-username:
-        required: false
-        type: string
-        default: ''
       vault-identity:
         required: false
         type: string
@@ -59,8 +55,6 @@ jobs:
 
       - name: Test with Molecule scenario ${{ inputs.scenario }}
         env:
-          POTATO_API_USERNAME: ${{ inputs.potato-username }}
-          POTATO_API_PASSWORD: ${{ secrets.POTATO_API_PASSWORD }}
           ANSIBLE_VAULT_IDENTITY: ${{ inputs.vault-identity }}
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
           # Make molecule output colored content (easier to read via GH UI)
