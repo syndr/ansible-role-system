@@ -66,10 +66,16 @@ system_hostname: "{{ inventory_hostname }}"
 
 
 ## Shell Configuration ## {{{
+
+# Aliases that should be configured for all users
+#  - Each alias should be a key-value pair where the key is the alias and the value is the command
 system_bash_aliases:
   ll: "ls -alF"
   la: "ls -A"
   l: "ls -CF"
+
+# List of filesystem paths that should be appended to the system PATH
+system_path_append: []
 
 # }}}
 

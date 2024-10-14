@@ -1,6 +1,42 @@
 ---
 # Install applications from the system package manager
 
+- name: Load default packages for OS
+  when: system_packages_base == 'DEFAULT'
+  block:
+    - name: Check for OS version-specific packages list
+      delegate_to: 127.0.0.1
+      ansible.builtin.stat:
+        path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+      register: __ac_packages_os_ver_specific_stat
+
+    - name: Load OS version-specific packages list
+      when: __ac_packages_os_ver_specific_stat.stat.exists
+      ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml
+
+    - name: Check for OS distribution packages list
+      delegate_to: 127.0.0.1
+      ansible.builtin.stat:
+        path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}.yml"
+      register: __ac_packages_os_specific_stat
+
+    - name: Load OS default packages list
+      when:
+        - __ac_packages_os_specific_stat.stat.exists
+        - not __ac_packages_os_ver_specific_stat.stat.exists
+      ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}.yml
+
+    - name: Validate packages list
+      ansible.builtin.assert:
+        that:
+          - system_packages_base is defined
+          - system_packages_base is mapping
+          - system_packages_base is not empty
+  rescue:
+    - name: Unable to load OS-specific default packages list
+      ansible.builtin.fail:
+        msg: You may need to create the defaults/packages-distro.yml file for this OS!
+
 - name: 🐜 Base packages are
   ansible.builtin.debug:
     var: system_packages_base
@@ -12,6 +48,7 @@
     verbosity: 1
 
 - name: Install system packages
+  when: system_packages_base is truthy or system_packages_extra is truthy
   become: true
   block:
     - name: Packages are installed (dnf)

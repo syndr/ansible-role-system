@@ -42,57 +42,14 @@
     - name: Configure sysctl settings
       ansible.builtin.include_tasks: sysctl.yml
 
-# Install the System Package Manager before packages
-- name: Configure system package manager
+- name: Configure applications with package managers
   tags: system-packages
   when: system_enable_packages
   block:
     - name: Configure global package manager settings
       ansible.builtin.include_tasks: package-manager.yml
 
-- name: Configure applications with package managers
-  tags: system-packages
-  when: system_enable_packages
-  block:
-    - name: Load default packages for OS
-      when: system_packages_base == 'DEFAULT'
-      block:
-        - name: Check for OS version-specific packages list
-          delegate_to: 127.0.0.1
-          ansible.builtin.stat:
-            path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-          register: __ac_packages_os_ver_specific_stat
-
-
-        - name: Load OS version-specific packages list
-          when: __ac_packages_os_ver_specific_stat.stat.exists
-          ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml
-
-        - name: Check for OS distribution packages list
-          delegate_to: 127.0.0.1
-          ansible.builtin.stat:
-            path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}.yml"
-          register: __ac_packages_os_specific_stat
-
-        - name: Load OS default packages list
-          when:
-            - __ac_packages_os_specific_stat.stat.exists
-            - not __ac_packages_os_ver_specific_stat.stat.exists
-          ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}.yml
-
-        - name: Validate packages list
-          ansible.builtin.assert:
-            that:
-              - system_packages_base is defined
-              - system_packages_base is mapping
-              - system_packages_base is not empty
-      rescue:
-        - name: Unable to load OS-specific default packages list
-          ansible.builtin.fail:
-            msg: You may need to create the defaults/packages-distro.yml file for this OS!
-
     - name: Configure system package manager packages
-      when: system_packages_base is truthy
       ansible.builtin.include_tasks: packages.yml
 
 - name: Install pip3 packages
@@ -121,6 +78,9 @@
   tags: system-shell
   when: system_enable_shell
   block:
+    - name: Configure global PATH
+      ansible.builtin.include_tasks: path.yml
+
     - name: Configure bash shell
       ansible.builtin.include_tasks: bash.yml
 

@@ -86,3 +86,24 @@
           ansible.builtin.systemd_service:
             name: getty@tty1
 
+    - name: Create test script for PATH config
+      become: true
+      block:
+        - name: Create /opt/bin directory
+          ansible.builtin.file:
+            path: /opt/bin
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Create PATH test script
+          ansible.builtin.copy:
+            content: |
+              #!/bin/bash
+              echo "Durp!"
+            dest: /opt/bin/path_test.sh
+            owner: root
+            group: root
+            mode: "0755"
+

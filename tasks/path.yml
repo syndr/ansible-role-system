@@ -1,0 +1,23 @@
+---
+# Configure global PATH for all users
+
+- name: Configure global PATH
+  when: system_path_append is truthy
+  become: true
+  ansible.builtin.copy:
+    content: |
+      # /etc/profile.d/system_global_path.sh
+      # Set global PATH for all users
+      PATH="$PATH:{{ system_path_append | join(':') }}"
+    dest: /etc/profile.d/system_global_path.sh
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Disable global path append
+  when: system_path_append is falsy
+  become: true
+  ansible.builtin.file:
+    path: /etc/profile.d/system_global_path.sh
+    state: absent
+

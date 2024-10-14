@@ -37,3 +37,22 @@
         fail_msg: "NTP configuration should not be enabled! Something went wrong!"
         success_msg: "NTP configuration is disabled as expected!"
 
+    - name: Validate setting path works
+      block:
+        - name: Attempt to run PATH test script in a login shell
+          ansible.builtin.shell:
+            cmd: bash -l path_test.sh
+          register: __ci_path_test
+          changed_when: false
+
+        - name: Validate PATH test script output
+          ansible.builtin.assert:
+            that:
+              - __ci_path_test.stdout == "Durp!"
+            fail_msg: "PATH test script did not output as expected! Output: {{ __ci_path_test.stdout }}"
+            success_msg: "PATH test script output is as expected!"
+
+    - name: Run system role with default settings
+      ansible.builtin.include_role:
+        name: system
+
