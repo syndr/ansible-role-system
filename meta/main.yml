@@ -35,6 +35,9 @@ galaxy_info:
     - name: Rocky
       versions:
         - 9
+    - name: Ubuntu
+      versions:
+        - "24.04"
 
   galaxy_tags:
     - kernel
