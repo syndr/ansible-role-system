@@ -238,6 +238,9 @@ system_alternatives: []
 system_ntp_servers:
   - 132.163.96.3   # NIST, Boulder, Colorado
 
+# Timezone for the system
+system_timezone: UTC
+
 # }}}
 
 

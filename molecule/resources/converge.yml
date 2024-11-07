@@ -69,6 +69,15 @@
             job: "echo 'Hello, World!'"
             special_time: "hourly"
             user: "root"
+          - name: "environment_variable_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+            env:
+              TEST_ENV_VAR: "test_value"
         system_alternatives:
           - name: test_alternative
             link: /usr/bin/smash
