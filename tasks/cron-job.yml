@@ -39,8 +39,10 @@
       ansible.builtin.cron:
         cron_file: "{{ __system_cron_job_values.cron_file }}"
         name: "{{ __system_cron_job_env_var.key }}"
-        env: "{{ __system_cron_job_env_var.value }}"
-        state: __system_cron_job_env_var.state
+        value: "{{ __system_cron_job_env_var.value }}"
+        user: "{{ __system_cron_job_values.user }}"
+        env: true
+        state: "{{ __system_cron_job_env_var.state }}"
 
     - name: Configure day-of-month cron job "{{ __system_cron_job.name }}"
       when:
