@@ -70,8 +70,6 @@ provisioner:
       playbook_vars_root: top
       verbosity: ${ANSIBLE_VERBOSITY:-0}
   env:
-    ANSIBLE_ROLES_PATH: /usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles:${PWD}/roles:${PWD}/../roles:${PWD}/../../roles
-    ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections:~/.ansible/collections:${PWD}/collections:${PWD}/../collections:${PWD}/../../collections
     ARA_API_CLIENT: ${ARA_API_CLIENT:-'http'}
     ARA_API_SERVER: ${ARA_API_SERVER:-'http://localhost:8000'}
     ARA_DEFAULT_LABELS: ${ARA_DEFAULT_LABELS:-'testing,molecule'}
