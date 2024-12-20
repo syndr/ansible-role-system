@@ -1,5 +1,5 @@
 #!/bin/bash
-cat<< 'EOF'
+cat<< 'EOF' | while IFS= read -r line; do echo -e "$line"; done
 
 {{ __system_motd_item.content | default(__system_motd_message) }}
 EOF

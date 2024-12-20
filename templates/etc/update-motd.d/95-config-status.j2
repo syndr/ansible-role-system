@@ -1,5 +1,5 @@
 #!/bin/bash
-cat << 'EOF'
+cat << 'EOF' | while IFS= read -r line; do echo -e "$line"; done
 
 {{ system_motd_status_header }}
   Timestamp: {{ ansible_date_time.iso8601 }}

@@ -3,6 +3,6 @@
   Timestamp: {{ ansible_date_time.iso8601 }}
   Version: {{ __system_project_version }}
 {% for key, value in system_motd_status_data.items() %}
-  {{ key }}: {{ value }}
+  {{ key }}: {{ value | replace('\\033', '') | replace('\\e', '') }}
 {% endfor %}
 

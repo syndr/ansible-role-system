@@ -3,6 +3,8 @@
 
 - name: Verify
   hosts: molecule
+  vars:
+    ansible_user: molecule_runner
   tasks:
     - name: Load system facts
       ansible.builtin.setup:
@@ -21,13 +23,35 @@
           AuthorizedKeysFile: .ssh/authorized_keys
         ansible_python_interpreter: /usr/local/bin/python3.10
 
+    - name: Verify environment variables
+      block:
+        - name: Load user env var
+          ansible.builtin.command:
+            cmd: bash -i -c "echo $I_AM_ROBOT"
+          changed_when: false
+          register: __ci_user_env_var
+
+        - name: Load system env var
+          ansible.builtin.command:
+            cmd: bash -i -c "echo $TZ"
+          changed_when: false
+          register: __ci_system_env_var
+
+        - name: Validate env vars
+          ansible.builtin.assert:
+            that:
+              - __ci_user_env_var.stdout | trim == "true"
+              - __ci_system_env_var.stdout | trim == "UTC"
+            fail_msg: "Environment variables are not set as expected!"
+            success_msg: "Environment variables are set as expected."
+
     - name: Run system role with only MOTD enabled
       ansible.builtin.include_role:
         name: system
       vars:
         ansible_user: molecule_runner
         system_motd_config_version: molecule-ci-test
-        system_default_enable: false
+        system_default: false
         system_enable_motd: true
 
     - name: Verify execution state
@@ -52,6 +76,7 @@
             fail_msg: "PATH test script did not output as expected! Output: {{ __ci_path_test.stdout }}"
             success_msg: "PATH test script output is as expected!"
 
+    # This takes more time to test, but the role should always be able to run successfully with defaults
     - name: Run system role with default settings
       ansible.builtin.include_role:
         name: system

@@ -173,6 +173,7 @@
         owner: root
         group: root
         mode: "0644"
+      register: __system_motd_static_item_results
 
     - name: Update Ansible timestamp motd file
       ansible.builtin.template:

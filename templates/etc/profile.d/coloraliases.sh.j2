@@ -1,0 +1,9 @@
+# enable color support of ls and also add handy aliases
+
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+{% for key, value in system_bash_coloraliases.items() %}
+    alias {{ key }}='{{ value }}'
+{% endfor %}
+fi
+

@@ -1,0 +1,53 @@
+---
+# Configure system profile settings
+#
+
+- name: Modify system configuration
+  become: true
+  block:
+    - name: Bash | OS-specific profile template exists
+      delegate_to: 127.0.0.1
+      become: false
+      ansible.builtin.stat:
+        path: "{{ role_path }}/templates/etc/profile.{{ ansible_distribution_file_variety | lower }}.j2"
+      register: __system_profile_templatefile_stat
+
+    - name: Bash | Configure system profile
+      vars:
+        __system_profile_templatefile_name: >-
+          {{ ansible_distribution_file_variety | lower if __system_profile_templatefile_stat.stat.exists else 'redhat' }}
+      ansible.builtin.template:
+        src: etc/profile.{{ __system_profile_templatefile_name }}.j2
+        dest: /etc/profile
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Configure login-shell aliases (1/2)
+      ansible.builtin.lineinfile:
+        dest: "/etc/profile.d/aliases.sh"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+        line: 'alias {{ item.key }}="{{ item.value }}"'
+        regexp: "^alias {{ item.key }}="
+      with_dict: "{{ system_bash_aliases }}"
+
+    - name: Bash | Configure login-shell aliases (2/2)
+      ansible.builtin.template:
+        src: etc/profile.d/coloraliases.sh.j2
+        dest: /etc/profile.d/coloraliases.sh
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Configure command history
+      become: true
+      ansible.builtin.template:
+        src: etc/profile.d/shell_history.sh.j2
+        dest: /etc/profile.d/shell_history.sh
+        owner: root
+        group: root
+        mode: "0644"
+

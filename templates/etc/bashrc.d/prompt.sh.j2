@@ -1,0 +1,35 @@
+# prompt.sh
+# Set the system prompt.
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color|*-256color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+{% if system_bash_force_color_prompt %}
+force_color_prompt=yes
+{% else %}
+#force_color_prompt=yes
+{% endif %}
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='{{ system_bash_color_prompt_header}}{{ system_bash_color_prompt_string }}'
+else
+    PS1='{{ system_bash_prompt_header }}{{ system_bash_prompt_string }}'
+fi
+unset color_prompt force_color_prompt
+

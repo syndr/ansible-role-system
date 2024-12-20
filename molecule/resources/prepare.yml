@@ -40,6 +40,7 @@
           ansible.builtin.user:
             name: "{{ molecule_user }}"
             group: "{{ molecule_user }}"
+            shell: /bin/bash
 
         - name: Sudoers.d directory exists
           ansible.builtin.file:

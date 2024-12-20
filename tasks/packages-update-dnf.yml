@@ -2,6 +2,9 @@
 
 - name: Manage dnf-automatic
   vars:
+    __system_dnf_automatic_services:
+      - dnf-automatic-download.service
+      - dnf-automatic-install.service
     __system_dnf_automatic_timers:
       - dnf-automatic-download.timer
       - dnf-automatic-install.timer
@@ -23,6 +26,17 @@
             group: root
             mode: '0644'
 
+        - name: Configure dnf-automatic systemd services
+          loop: "{{ __system_dnf_automatic_services }}"
+          loop_control:
+            loop_var: __system_dnf_automatic_service
+          ansible.builtin.template:
+            src: etc/systemd/system/{{ __system_dnf_automatic_service }}.j2
+            dest: /etc/systemd/system/{{ __system_dnf_automatic_service }}
+            owner: root
+            group: root
+            mode: '0644'
+
         - name: Configure dnf-automatic systemd timer
           loop: "{{ __system_dnf_automatic_timers }}"
           loop_control:
@@ -38,10 +52,11 @@
           loop: "{{ __system_dnf_automatic_timers }}"
           loop_control:
             loop_var: __system_dnf_automatic_timer
-          ansible.builtin.systemd:
+          ansible.builtin.systemd_service:
             name: "{{ __system_dnf_automatic_timer }}"
             enabled: true
             state: started
+            daemon_reload: true
 
     - name: Disable package auto-update (dnf)
       when: not system_enable_packages_auto_update

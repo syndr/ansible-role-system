@@ -1,0 +1,117 @@
+---
+# Configure system bashrc files
+#
+# Expected variables:
+#   - __system_bashrc_filename: The name of the system bashrc file
+#
+
+- name: Update system bashrc files
+  become: true
+  block:
+    - name: Bash | Configure system bashrc (configuration file)
+      ansible.builtin.template:
+        src: etc/{{ __system_bashrc_filename }}.j2
+        dest: /etc/{{ __system_bashrc_filename }}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Configure system bashrc (directory)
+      ansible.builtin.file:
+        path: /etc/bashrc.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Bash | Find user bashrc files
+      ansible.builtin.find:
+        paths:
+          - /home
+          - /root
+        patterns: ".bashrc"
+        recurse: true
+        hidden: true
+      register: __system_user_bashrc_files
+
+    - name: 🐜 Show user bashrc files
+      debug:
+        var: __system_user_bashrc_files
+        verbosity: 1
+
+    - name: Bash | User bashrc file sources system bashrc
+      when: not system_bashrc_overwrite_existing
+      loop: "{{ __system_user_bashrc_files.files }}"
+      loop_control:
+        loop_var: __system_user_bashrc_file
+        label: "{{ __system_user_bashrc_file.path }}"
+      become: true
+      ansible.builtin.blockinfile:
+        path: "{{ __system_user_bashrc_file.path }}"
+        block: |2
+          # Source global definitions
+          if [ -f /etc/{{ __system_bashrc_filename }} ]; then
+            . /etc/{{ __system_bashrc_filename }}
+          fi
+        append_newline: true
+        prepend_newline: true
+
+    - name: Bash | User utilizes system bashrc
+      when: system_bashrc_overwrite_existing
+      loop: "{{ __system_user_bashrc_files.files }}"
+      loop_control:
+        loop_var: __system_user_bashrc_file
+        label: "{{ __system_user_bashrc_file.pw_name }}"
+      become: true
+      ansible.builtin.template:
+        src: etc/skel/.bashrc.j2
+        dest: "{{ __system_user_bashrc_file.path }}"
+        owner: "{{ __system_user_bashrc_file.pw_name }}"
+        group: "{{ __system_user_bashrc_file.gr_name }}"
+        mode: "0644"
+
+    - name: Bash | Configure bashrc user template
+      become: true
+      ansible.builtin.template:
+        src: etc/skel/.bashrc.j2
+        dest: /etc/skel/.bashrc
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Root uses system bashrc
+      ansible.builtin.template:
+        src: etc/skel/.bashrc.j2
+        dest: /root/.bashrc
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Configure prompt
+      become: true
+      ansible.builtin.template:
+        src: etc/bashrc.d/prompt.sh.j2
+        dest: /etc/bashrc.d/prompt.sh
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Configure non-login aliases (1/2)
+      ansible.builtin.lineinfile:
+        dest: "/etc/bashrc.d/aliases.sh"
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+        line: 'alias {{ item.key }}="{{ item.value }}"'
+        regexp: "^alias {{ item.key }}="
+      with_dict: "{{ system_bash_aliases }}"
+
+    - name: Bash | Configure non-login aliases (2/2)
+      ansible.builtin.template:
+        src: etc/bashrc.d/coloraliases.sh.j2
+        dest: /etc/bashrc.d/coloraliases.sh
+        owner: root
+        group: root
+        mode: "0644"
+

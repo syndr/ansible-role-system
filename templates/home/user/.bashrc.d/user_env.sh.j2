@@ -1,0 +1,7 @@
+#!/bin/bash
+# Export environment vars for access by the {{ __system_environment_user_vars.key }} user
+
+{% for key, value in __system_environment_user_vars.value.items() %}
+export {{ key }}="{{ value }}"
+{% endfor %}
+

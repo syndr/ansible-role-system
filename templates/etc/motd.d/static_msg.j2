@@ -1,2 +1,2 @@
 
-{{ __system_motd_item.content | default(__system_motd_message) }}
+{{ __system_motd_item.content | default(__system_motd_message) | replace('\\033', '') | replace('\\e', '') }}
