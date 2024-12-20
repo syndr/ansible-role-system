@@ -47,9 +47,9 @@
   become: true
   ansible.builtin.service_facts:
 
-- name: 🐜 Show discovered crond service
+- name: 🐜 Show discovered cron service
   ansible.builtin.debug:
-    var: ansible_facts.services['crond.service']
+    var: ansible_facts.services[ __system_compat_services.cron ]
     verbosity: 1
 
 - name: Validate cron status

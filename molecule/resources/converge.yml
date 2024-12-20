@@ -84,6 +84,14 @@
             path: /usr/bin/bash
         system_path_append:
           - /opt/bin
+        system_motd_status_data:
+          Status: "\\033[2;34mMOLECULE CI \\033[1;34mTEST INSTANCE\\033[0m"
+        system_bash_force_color_prompt: true
+        system_bashrc_overwrite_existing: true
+        system_user_environment_vars:
+          root:
+          molecule_runner:
+            I_AM_ROBOT: "true"
       ansible.builtin.include_role:
         name: system
 

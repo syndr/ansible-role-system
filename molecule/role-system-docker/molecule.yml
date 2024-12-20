@@ -6,7 +6,7 @@ driver:
   name: default
   options:
     managed: true
-    login_cmd_template: 'docker exec -ti {instance} bash'
+    login_cmd_template: 'docker exec -ti {instance} bash --login'
 platforms:
   - name: role-system-fedora40
     type: docker
@@ -15,7 +15,14 @@ platforms:
     modify_image: False
     privileged: True
     hostvars:
-      system_enable_hostname: false   # Can't replace hostname file in docker containers
+      system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
+  - name: role-system-fedora41
+    type: docker
+    image: geerlingguy/docker-fedora41-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
       system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
   - name: role-system-rocky9
     type: docker
@@ -23,8 +30,7 @@ platforms:
     systemd: True
     modify_image: False
     privileged: True
-    hostvars:
-      system_enable_hostname: false   # Can't replace hostname file in docker containers
+    hostvars: {}
   - name: role-system-ubuntu2204
     type: docker
     image: geerlingguy/docker-ubuntu2204-ansible:latest
@@ -32,9 +38,15 @@ platforms:
     modify_image: False
     privileged: True
     hostvars:
-      system_enable_hostname: false   # Can't replace hostname file in docker containers
       system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+  - name: role-system-amazon2023
+    type: docker
+    image: geerlingguy/docker-amazonlinux2023-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars: {}
 provisioner:
   name: ansible
   log: True
@@ -46,11 +58,26 @@ provisioner:
     verify: ../resources/verify.yml
     cleanup: ../resources/cleanup.yml
     destroy: ../resources/destroy.yml
+  inventory:
+    group_vars:
+      all:
+        org: molecule
+        env: ci
+        system_enable_hostname: false   # Can't replace hostname file in docker containers
   config_options:
     defaults:
       gathering: explicit
       playbook_vars_root: top
       verbosity: ${ANSIBLE_VERBOSITY:-0}
+  env:
+    ANSIBLE_ROLES_PATH: /usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles:${PWD}/roles:${PWD}/../roles:${PWD}/../../roles
+    ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections:~/.ansible/collections:${PWD}/collections:${PWD}/../collections:${PWD}/../../collections
+    ARA_API_CLIENT: ${ARA_API_CLIENT:-'http'}
+    ARA_API_SERVER: ${ARA_API_SERVER:-'http://localhost:8000'}
+    ARA_DEFAULT_LABELS: ${ARA_DEFAULT_LABELS:-'testing,molecule'}
+    # To use Ara with molecule:
+    #  export the ANSIBLE_CALLBACK_PLUGINS env var with the output of 'python3 -m ara.setup.callback_plugins'
+    ANSIBLE_CALLBACK_PLUGINS: ${ANSIBLE_CALLBACK_PLUGINS}
 scenario:
   create_sequence:
     - dependency

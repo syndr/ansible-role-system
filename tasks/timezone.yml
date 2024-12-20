@@ -1,6 +1,6 @@
 ---
+# Set the system timezone
 
-# Set the timezone to Etc/UTC
 - name: Configure system timezone
   become: true
   block:

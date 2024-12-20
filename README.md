@@ -3,17 +3,31 @@ System Configuration
 
 [![Role - system](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml/badge.svg)](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml)
 
-Configure the fundamentals of the system needed in order for it to be usable within the chosen deployment environment.
+Configure the fundamentals of a linux system.
 
 These include:
 - System hostname
-- Shell customizations
+- Shell customizations (Bash)
+    - System PATH
+    - System aliases
+    - System environment variables
+    - User environment variables
+    - Shell prompt
+    - Command history
 - Kernel options
-- System package manager confiugration
+    - Sysctl configuration
+    - System power management (enable/disable sleep mode)
+- System package manager configuration
 - System package auto-updates
-- Base packages installed via system package manager
+    - Schedule
+    - Package categories (security, etc)
+- Packages installed via system package manager
+  - Number of kernels retained on the system
+  - Base packages to install for system
 - System application alternatives (update-alternatives)
 - System logging (log file rotation, etc)
+    - Logrotate configuration
+    - Journald configuration
 - SSH configuration
 - System timezone
 - System cron jobs
@@ -24,9 +38,13 @@ Requirements
 
 A target host with appropriate networking and credentials that Ansible can access it.
 
+Ansible must be able to escalate to root privileges on the target host.
+
 Collections:
 - ansible.posix
 - community.general
+
+For supported OSs, see `platforms` in [meta/main.yml](meta/main.yml).
 
 Role Variables
 --------------
@@ -36,48 +54,49 @@ Role Variables
 #
 
 # Should the role configuration features default to enabled or disabled
-system_default_enable: true
+#   - Sets the default value for configuration categories such as kernel, packages, motd, etc.
+system_default: true
 
 # Set the system hostname
-system_enable_hostname: "{{ system_default_enable }}"
+system_enable_hostname: "{{ system_default }}"
 
 # Manage kernel options, etc.
-system_enable_kernel: "{{ system_default_enable }}"
+system_enable_kernel: "{{ system_default }}"
 
 # Manage packages on the system
-system_enable_packages: "{{ system_default_enable }}"
+system_enable_packages: "{{ system_default }}"
 
 # Manage automatic package updates using yum-cron, dnf-automatic, etc.
 #  - Requires system_enable_packages to be enabled
-#  - Requires system_enable_utilities to be enabled
-system_enable_packages_auto_update: "{{ system_default_enable }}"
+#  - Requires system_enable_utils to be enabled
+system_enable_packages_auto_update: "{{ system_default }}"
 
 # Configure system application alternatives, as done by the 'update-alternatives' tool
-system_enable_alternatives: "{{ system_default_enable }}"
+system_enable_alternatives: "{{ system_default }}"
 
 # Manage system services such as NTP and SSH
-system_enable_services: "{{ system_default_enable }}"
+system_enable_services: "{{ system_default }}"
 
 # Manage system shell configuration, such as aliases, etc.
-system_enable_shell: "{{ system_default_enable }}"
+system_enable_shell: "{{ system_default }}"
 
 # Manage system MOTD
-system_enable_motd: "{{ system_default_enable }}"
+system_enable_motd: "{{ system_default }}"
 
 # Manage system logging using logrotate, journald
-system_enable_logging: "{{ system_default_enable }}"
+system_enable_logging: "{{ system_default }}"
 
 # Install system-wide pip packages
-system_enable_pip_packages: "{{ system_default_enable }}"
+system_enable_pip_packages: "{{ system_default }}"
 
 # Manage system timezone
-system_enable_timezone: "{{ system_default_enable }}"
+system_enable_timezone: "{{ system_default }}"
 
 # Manage system cron jobs
-system_enable_cron: "{{ system_default_enable }}"
+system_enable_cron: "{{ system_default }}"
 
 # Deploy system utility scripts
-system_enable_utils: "{{ system_default_enable }}"
+system_enable_utils: "{{ system_default }}"
 
 # Install location for system tools used by the configuration deployed by this role
 # NOTE: These should be always be installed outside of extraordinary circumstances
@@ -97,27 +116,163 @@ system_hostname: "{{ inventory_hostname }}"
 
 
 ## Shell Configuration ## {{{
+
+# List of filesystem paths that should be appended to the system PATH
+system_path_append: []
+
+### Bash History Configuration ### {{{
+
+# Time format for bash history
+system_bash_histtimeformat: "%F %T "
+
+# Filesystem location for user bash history
+system_bash_histfile: ${HOME}/.bash_history
+
+# List of commands that should be ignored in the bash history
+system_bash_histignore:
+  - ls
+  - ll
+  - ls -alh
+  - ls -lah
+  - pwd
+  - clear
+  - history
+
+# When the shell exits, append to the history file instead of overwriting it
+system_bash_histappend: true
+
+# Number of commands to remember for the current session
+system_bash_histsize: 5000
+
+# Maximum number of lines in the bash history file
+system_bash_histfilesize: 5000
+
+# A colon-separated list of values controlling how commands are saved on the history list
+#  - 'ignorespace': commands starting with a space are not saved to the history list
+#  - 'ignoredups': do not save duplicate commands
+#  - 'ignoreboth': shorthand for 'ignorespace' and 'ignoredups'
+system_bash_histcontrol: ignoreboth
+
+# Command to run before the prompt is displayed
+#  - Set to an empty string to disable
+system_bash_prompt_command: "history -a"
+
+### }}}
+
+### Bash Environment Configuration ## {{{
+
+# Aliases that should be configured for all users
+#  - Each alias should be a key-value pair where the key is the alias and the value is the command
 system_bash_aliases:
+  # Some 'ls' customizations
   ll: "ls -alF"
   la: "ls -A"
   l: "ls -CF"
+  # require prompts on common file interactions
+  rm: 'rm -i'
+  cp: "cp -i"
+  mv: "mv -i"
 
-# }}}
+# Aliases that should be configured for all users, and are only used if color is supported
+#  - Each alias should be a key-value pair where the key is the alias and the value is the command
+#  - Typically used for colorized output from command that support it
+system_bash_coloraliases:
+  ls: "ls --color=auto"
+  dir: "dir --color=auto"
+  vdir: "vdir --color=auto"
+  grep: "grep --color=auto"
+  fgrep: "fgrep --color=auto"
+  egrep: "egrep --color=auto"
+
+# Force a color shell prompt, even if an explicitly color-supported terminal (IE: xterm-256color) is not detected
+system_bash_force_color_prompt: false
+
+# String to put at the beginning of the bash prompt (no color)
+system_bash_prompt_header: >-
+  {{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }} ⮞ 
+
+# String to put at the beginning of the bash prompt (with color)
+system_bash_color_prompt_header: >-
+  \e[3;1;35m{{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }}\e[0m\e[1;1;34m ⮞\e[0m 
+
+# Main bash prompt (no color)
+system_bash_prompt_string: >-
+  \u@\h:\w\$ 
+
+# Main bash prompt (with color)
+system_bash_color_prompt_string: >-
+  \[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ 
+
+# Should existing user bashrc files be overwritten
+#  - Set to false to prevent overwriting existing user bashrc files with the system default from /etc/skel/
+#    If false, user bashrc files will be updated in place to source the system /etc/bashrc.d/ directory
+system_bashrc_overwrite_existing: false
+
+### }}}
+
+
+### Shell Environment Variable Configuration ### {{{
+
+# Name of the file in which the defined environment variables should be stored
+#  - File will be stored in:
+#    - [global] /etc/bashrc.d/{{ system_environment_filename }}.sh
+#    - [user] ~/.bashrc.d/{{ system_environment_filename }}.sh
+system_environment_filename: ansible_default_env
+
+# Hide log output from tasks setting environment variables
+#  - Set to true to avoid detailed task logging for environment variable setting tasks
+#    - Useful to prevent exposing sensitive information such as secrets
+system_environment_no_log: false
+
+# Should any empty environment variables be purged from the system
+#  - Only applies if one of the following is true --
+#      - system_global_environment_vars: {}
+#      - system_user_environment_vars: {}
+#  - Set to true to remove the file matching <system_environment_filename>.sh
+system_environment_purge_empty: false
+
+# Environment variables that should be set for all users on the system
+# - Each variable should be a key-value pair where the key is the variable name and the value is the value
+system_global_environment_vars:
+  # Set the default editor
+  EDITOR: "vim"
+  # Set the default pager
+  PAGER: "less"
+  # Set the default timezone
+  TZ: "{{ system_timezone }}"
+  # Set the default language
+  LANG: "en_US.UTF-8"
+
+# Dictionary of environment variables that should be set for specific users on the system
+#  - Each user should be a key-value pair where the key is the username and the value is a dictionary of environment variables
+#
+#    For example -- to set the EDITOR variable for the root user:
+#    system_user_environment_variables:
+#      root:
+#        EDITOR: "vim"
+system_user_environment_vars: {}
+
+
+### }}}
+
+## }}}
 
 
 ## MOTD Configuration ## {{{
 system_motd_banner: |
-  +                                                                                       +
-                        .o.         .oooooo.   ooo        ooooo oooooooooooo
-                       .888.       d8P'  `Y8b  `88.       .888' `888'     `8
-                      .8"888.     888           888b     d'888   888
-      \    /\        .8' `888.    888           8 Y88. .P  888   888oooo8
-       )  ( ')      .88ooo8888.   888           8  `888'   888   888    "
-      (  /  )      .8'     `888.  `88b    ooo   8    Y     888   888       o
-       \(__)|     o88o     o8888o  `Y8bood8P'  o8o        o888o o888ooooood8
-
-                             Advanced Computer Mouse Endangerment
-  +                                                                                       +
+  \e[1;96m\e[48;5;232m
+  ╔═══════════════════════════════════════════════════════════════════════════════════════╗
+  ║                     .o.         .oooooo.   ooo        ooooo oooooooooooo              ║
+  ║                    .888.       d8P'  `Y8b  `88.       .888' `888'     `8              ║
+  ║                   .8"888.     888           888b     d'888   888                      ║
+  ║   \    /\        .8' `888.    888           8 Y88. .P  888   888oooo8                 ║
+  ║    )  ( ')      .88ooo8888.   888           8  `888'   888   888    "                 ║
+  ║   (  /  )      .8'     `888.  `88b    ooo   8    Y     888   888       o              ║
+  ║    \(__)║     o88o     o8888o  `Y8bood8P'  o8o        o888o o888ooooood8              ║
+  ║                                                                                       ║
+  ║                          Advanced Computer Mouse Endangerment                         ║
+  ╚═══════════════════════════════════════════════════════════════════════════════════════╝
+  \e[0m
 
 # The version of the motd configuration. If set to an empty string, the git hash
 #  of the project containing the originating playbook will be used.
@@ -137,7 +292,7 @@ system_motd_static_messages:
     content: "{{ system_motd_banner }}"
     state: present
   - name: 90-ansible-warning
-    content: "WARNING: This host is managed by Ansible! Manual changes may revert automagically!"
+    content: "\\e[1;31mWARNING:\\e[0m This host is managed by Ansible! Manual changes may revert automagically!"
     state: present
 
 # List of filenames that should be removed if they're in the update-motd.d directory
@@ -149,6 +304,7 @@ system_motd_status_header: "Configuration Status:"
 
 # Data that should be included in the 'status' section of the MOTD
 #  - Store as a dictionary of key-value pairs, where the key is the title and the value is the data
+#  - Updating these values will not trigger a 'changed' state in the playbook
 system_motd_status_data:
   Role: "{{ role | default('base') }}"
 
@@ -263,6 +419,9 @@ system_alternatives: []
 system_ntp_servers:
   - 132.163.96.3   # NIST, Boulder, Colorado
 
+# Timezone for the system
+system_timezone: UTC
+
 # }}}
 
 
@@ -326,32 +485,33 @@ system_logging_storage_type: auto     # volatile/persistent/auto/none
 Dependencies
 ------------
 
-TBA
+Dependent system packages for role operation are installed by the role when `system_packages_base: DEFAULT` is set.
+
+If non-default base packages list is provided, additional dependencies may be required.
 
 Example Playbook
 ----------------
 
 ```yaml
-- name: Perform a basic system configuratioon
+- name: Perform default system configuration
   hosts: all
   tasks:
     - name: Launch base system configuration
       ansible.builtin.include_role:
         name: system
+```
+
+```yaml
+- name: Configure subset of system features 
+  hosts: all
+  tasks:
+    - name: Configure system shell and MOTD
       vars:
-        system_enable_hostname: true
-        system_enable_kernel: true
-        system_enable_packages: true
-        system_enable_packages_auto_update: true
-        system_enable_alternatives: true
-        system_enable_services: true
+        system_default: false
         system_enable_shell: true
-        system_enable_motd: true
-        system_enable_logging: true
-        system_enable_pip_packages: true
-        system_enable_timezone: true
-        system_enable_cron: true
-        system_enable_utils: true
+        system_enable_MOTD: true
+      ansible.builtin.include_role:
+        name: system
 ```
 
 License
@@ -362,4 +522,5 @@ MIT
 Author Information
 ------------------
 
-- [@syndr](https://github.com/syndr)
+- [syndr](http://github.com/syndr) 
+

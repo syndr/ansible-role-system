@@ -4,6 +4,7 @@
 system_packages_base:
   - git
   - jq
+  - mlocate
   - nc
   - python3-pip
   - rsync
