@@ -1,0 +1,77 @@
+---
+role_name_check: 0
+dependency:
+  name: galaxy
+driver:
+  name: default
+  options:
+    managed: true
+platforms:
+  - name: role-system-ec2-al2
+    type: ec2
+    image: ami-0d61ea20f09848335    # Amazon Linux 2 AMI (HVM) - Kernel 5.10
+    region: us-east-2
+    instance_type: t3.micro
+    ssh_user: molecule_runner
+    vpc_id: vpc-0eb9fd1391f4207ec
+    vpc_subnet_id: subnet-0aa189c0d6fc53923
+    boot_wait_seconds: 5
+    hostvars:
+      org: molecule
+      env: ci
+provisioner:
+  name: ansible
+  log: True
+  playbooks:
+    create: ../resources/create.yml
+    prepare: ../resources/prepare.yml
+    converge: ../resources/converge.yml
+    side_effect: ../resources/side_effect.yml
+    verify: ../resources/verify.yml
+    cleanup: ../resources/cleanup.yml
+    destroy: ../resources/destroy.yml
+  config_options:
+    defaults:
+      gathering: explicit
+      playbook_vars_root: top
+      verbosity: ${ANSIBLE_VERBOSITY:-0}
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+verifier:
+  name: ansible
+  enabled: true
+
