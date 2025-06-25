@@ -1,8 +1,6 @@
 System Configuration
 =========
 
-[![Role - system](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml/badge.svg)](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml)
-
 Configure the fundamentals of a linux system.
 
 These include:
@@ -142,10 +140,10 @@ system_bash_histignore:
 system_bash_histappend: true
 
 # Number of commands to remember for the current session
-system_bash_histsize: 5000
+system_bash_histsize: 500000
 
 # Maximum number of lines in the bash history file
-system_bash_histfilesize: 5000
+system_bash_histfilesize: 5000000
 
 # A colon-separated list of values controlling how commands are saved on the history list
 #  - 'ignorespace': commands starting with a space are not saved to the history list
@@ -168,40 +166,58 @@ system_bash_aliases:
   ll: "ls -alF"
   la: "ls -A"
   l: "ls -CF"
-  # require prompts on common file interactions
-  rm: 'rm -i'
-  cp: "cp -i"
-  mv: "mv -i"
 
 # Aliases that should be configured for all users, and are only used if color is supported
 #  - Each alias should be a key-value pair where the key is the alias and the value is the command
 #  - Typically used for colorized output from command that support it
-system_bash_coloraliases:
-  ls: "ls --color=auto"
-  dir: "dir --color=auto"
-  vdir: "vdir --color=auto"
-  grep: "grep --color=auto"
-  fgrep: "fgrep --color=auto"
-  egrep: "egrep --color=auto"
+#
+#  Example:
+#    ls: "ls --color=auto"
+#    dir: "dir --color=auto"
+#    vdir: "vdir --color=auto"
+#    grep: "grep --color=auto"
+#    fgrep: "fgrep --color=auto"
+#    egrep: "egrep --color=auto"
+#
+# Warning: This may cause parsing issues with script output in colorized terminals
+#  - Use with caution
+system_bash_coloraliases: {}
 
 # Force a color shell prompt, even if an explicitly color-supported terminal (IE: xterm-256color) is not detected
 system_bash_force_color_prompt: false
 
+# Disable color shell prompt, even if an explicitly color-supported terminal (IE: xterm-256color) is detected
+system_bash_disable_color_prompt: false
+
+# Symbol to use at the end of the bash prompt
+#  - expects a dictionary of values, including 'default' any additional desired UIDs
+#  - The 'default' value is used for all users that do not have a specific UID defined
+#  - Take care to write the UIDs as strings, IE: '0', '1', '2', etc.
+#  - Take care to use proper jinja2 escaping for symbols such as $ and \, etc.
+system_bash_prompt_symbols:
+  default: ">"
+  root: "#"
+system_bash_color_prompt_symbols:
+  default: >-
+    \[\033[01;32m\]{{ system_bash_prompt_symbols.default }}\[\033[00m\]
+  root: >-
+    \[\033[01;31m\]{{ system_bash_prompt_symbols.root }}\[\033[00m\]
+
 # String to put at the beginning of the bash prompt (no color)
 system_bash_prompt_header: >-
-  {{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }} ⮞ 
+  {{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }}|
 
 # String to put at the beginning of the bash prompt (with color)
 system_bash_color_prompt_header: >-
-  \e[3;1;35m{{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }}\e[0m\e[1;1;34m ⮞\e[0m 
+  \[\033[3;1;35m\]{{ org | default('') }}{{ '-' + env if env | default('') is truthy else '' }}\[\033[0m\]|
 
 # Main bash prompt (no color)
 system_bash_prompt_string: >-
-  \u@\h:\w\$ 
+  \u@\h:\w
 
 # Main bash prompt (with color)
 system_bash_color_prompt_string: >-
-  \[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ 
+  \[\033[01;34m\]\u@\h\[\033[00m\]:\[\033[01;36m\]\w\[\033[00m\]
 
 # Should existing user bashrc files be overwritten
 #  - Set to false to prevent overwriting existing user bashrc files with the system default from /etc/skel/
@@ -260,7 +276,7 @@ system_user_environment_vars: {}
 
 ## MOTD Configuration ## {{{
 system_motd_banner: |
-  \e[1;96m\e[48;5;232m
+  \033[1;96m\033[48;5;232m
   ╔═══════════════════════════════════════════════════════════════════════════════════════╗
   ║                     .o.         .oooooo.   ooo        ooooo oooooooooooo              ║
   ║                    .888.       d8P'  `Y8b  `88.       .888' `888'     `8              ║
@@ -268,11 +284,11 @@ system_motd_banner: |
   ║   \    /\        .8' `888.    888           8 Y88. .P  888   888oooo8                 ║
   ║    )  ( ')      .88ooo8888.   888           8  `888'   888   888    "                 ║
   ║   (  /  )      .8'     `888.  `88b    ooo   8    Y     888   888       o              ║
-  ║    \(__)║     o88o     o8888o  `Y8bood8P'  o8o        o888o o888ooooood8              ║
-  ║                                                                                       ║
-  ║                          Advanced Computer Mouse Endangerment                         ║
-  ╚═══════════════════════════════════════════════════════════════════════════════════════╝
-  \e[0m
+  ║    \(__)║     o88o     o8888o  `Y8bood8P'  o8o        o888o o888ooooood8     (\/)     ║
+  ║                                                                               \/\     ║
+  ║                          Advanced Computer Mouse Endangerment                 /__)    ║
+  ╚═════════════════════════════════════════════════════════════════════════════════(═════╝
+   \033[0m\033[1;96m                                                                                  )\033[0m
 
 # The version of the motd configuration. If set to an empty string, the git hash
 #  of the project containing the originating playbook will be used.
@@ -292,7 +308,7 @@ system_motd_static_messages:
     content: "{{ system_motd_banner }}"
     state: present
   - name: 90-ansible-warning
-    content: "\\e[1;31mWARNING:\\e[0m This host is managed by Ansible! Manual changes may revert automagically!"
+    content: "\\033[1;31mWARNING:\\033[0m This host is managed by Ansible! Manual changes may revert automagically!"
     state: present
 
 # List of filenames that should be removed if they're in the update-motd.d directory
@@ -458,6 +474,7 @@ system_sshd_config:
     - LC_IDENTIFICATION LC_ALL LANGUAGE
     - XMODIFIERS
   UseDNS: 'no'
+  Subsystem: sftp    /usr/libexec/openssh/sftp-server
 
 # Default configuration settings that will always be applied unless overridden
 system_sshd_config_defaults:
@@ -481,6 +498,87 @@ system_logging_storage_type: auto     # volatile/persistent/auto/none
 
 # }}}
 ```
+
+## Bash Prompt Escape Sequence Reference
+
+### Non-Printing Character Markers
+
+> [!NOTE]
+> These are primarily used in PS1 prompts in bash
+
+| Marker | Description |
+|--------|-------------|
+| `\[` | Begins a sequence of non-printing characters |
+| `\]` | Ends a sequence of non-printing characters |
+
+### Escape Sequence Formats
+
+| Format | Description | Example |
+|--------|-------------|---------|
+| `\e[` | Escape sequence using `\e` (works in some shells) | `\e[1;31m` |
+| `\033[` | Escape sequence using octal value (more compatible) | `\033[1;31m` |
+| `\x1B[` | Escape sequence using hex value | `\x1B[1;31m` |
+
+### Text Formatting Codes
+
+| Code | Effect | Example |
+|------|--------|---------|
+| `0` | Reset all attributes | `\[\033[0m\]` |
+| `1` | Bold/Bright | `\[\033[1m\]` |
+| `2` | Dim | `\[\033[2m\]` |
+| `3` | Italic | `\[\033[3m\]` |
+| `4` | Underline | `\[\033[4m\]` |
+| `5` | Blink | `\[\033[5m\]` |
+| `7` | Reverse/Invert | `\[\033[7m\]` |
+| `9` | Strikethrough | `\[\033[9m\]` |
+
+### Text Color Codes (Foreground)
+
+| Code | Color | Example |
+|------|-------|---------|
+| `30` | Black | `\[\033[30m\]` |
+| `31` | Red | `\[\033[31m\]` |
+| `32` | Green | `\[\033[32m\]` |
+| `33` | Yellow | `\[\033[33m\]` |
+| `34` | Blue | `\[\033[34m\]` |
+| `35` | Magenta/Purple | `\[\033[35m\]` |
+| `36` | Cyan | `\[\033[36m\]` |
+| `37` | White | `\[\033[37m\]` |
+| `90-97` | Bright versions of colors 30-37 | `\[\033[91m\]` (bright red) |
+
+### Background Color Codes
+
+| Code | Color | Example |
+|------|-------|---------|
+| `40` | Black | `\[\033[40m\]` |
+| `41` | Red | `\[\033[41m\]` |
+| `42` | Green | `\[\033[42m\]` |
+| `43` | Yellow | `\[\033[43m\]` |
+| `44` | Blue | `\[\033[44m\]` |
+| `45` | Magenta/Purple | `\[\033[45m\]` |
+| `46` | Cyan | `\[\033[46m\]` |
+| `47` | White | `\[\033[47m\]` |
+| `100-107` | Bright versions of colors 40-47 | `\[\033[103m\]` (bright yellow) |
+
+### Bash Prompt Special Characters
+
+| Character | Description |
+|-----------|-------------|
+| `\u` | Username |
+| `\h` | Hostname up to first `.` |
+| `\H` | Full hostname |
+| `\w` | Current working directory (full path) |
+| `\W` | Current working directory (basename only) |
+| `\d` | Date in "Weekday Month Date" format |
+| `\t` | Time in 24-hour format |
+| `\T` | Time in 12-hour format |
+| `\@` | Time in 12-hour am/pm format |
+| `\$` | # for root, $ for regular users |
+
+### Combining Formats
+
+You can combine multiple formatting codes with semicolons:
+- `\[\033[1;32;45m\]` = Bold + Green text + Magenta background
 
 Dependencies
 ------------
@@ -522,5 +620,5 @@ MIT
 Author Information
 ------------------
 
-- [syndr](http://github.com/syndr) 
+- [syndr](http://github.com/syndr)
 
