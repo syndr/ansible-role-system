@@ -8,22 +8,15 @@ driver:
     managed: true
     login_cmd_template: 'docker exec -ti {instance} bash --login'
 platforms:
-  - name: role-system-fedora40
+  - name: role-system-fedora42
     type: docker
-    image: geerlingguy/docker-fedora40-ansible:latest
+    image: geerlingguy/docker-fedora42-ansible:latest
     systemd: True
     modify_image: False
     privileged: True
     hostvars:
       system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
-  - name: role-system-fedora41
-    type: docker
-    image: geerlingguy/docker-fedora41-ansible:latest
-    systemd: True
-    modify_image: False
-    privileged: True
-    hostvars:
-      system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
+      system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
   - name: role-system-rocky9
     type: docker
     image: geerlingguy/docker-rockylinux9-ansible:latest
@@ -40,13 +33,32 @@ platforms:
     hostvars:
       system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_bash_prompt_symbols: {}      # Test with no prompt symbols
+      system_bash_color_prompt_symbols: {} # Test with no prompt symbols
+  - name: role-system-ubuntu2404
+    type: docker
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
+      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
+      system_enable_packages_auto_update: false   # Ubuntu is not yet supported
   - name: role-system-amazon2023
     type: docker
     image: geerlingguy/docker-amazonlinux2023-ansible:latest
     systemd: True
     modify_image: False
     privileged: True
-    hostvars: {}
+    hostvars:
+      # Test color prompt aliases
+      system_bash_coloraliases:
+        ls: "ls --color=auto"
+        dir: "dir --color=auto"
+        vdir: "vdir --color=auto"
+        grep: "grep --color=auto"
+        fgrep: "fgrep --color=auto"
+        egrep: "egrep --color=auto"
 provisioner:
   name: ansible
   log: True

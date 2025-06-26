@@ -13,13 +13,6 @@ case $- in
       *) return;;
 esac
 
-# BEGIN ANSIBLE MANAGED BLOCK
-# Source global definitions
-if [ -f /etc/{{ __system_bashrc_filename }} ]; then
-	. /etc/{{ __system_bashrc_filename }}
-fi
-# END ANSIBLE MANAGED BLOCK
-
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
@@ -69,4 +62,11 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# BEGIN ANSIBLE MANAGED BLOCK
+# Source global definitions
+if [ -f /etc/{{ __system_bashrc_filename }} ]; then
+  . /etc/{{ __system_bashrc_filename }}
+fi
+# END ANSIBLE MANAGED BLOCK
 

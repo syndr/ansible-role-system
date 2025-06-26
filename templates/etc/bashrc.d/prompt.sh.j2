@@ -1,17 +1,44 @@
 # prompt.sh
 # Set the system prompt.
 
+{% macro generate_prompt_symbol_conditional(prompt_map) %}
+{% set items = prompt_map | dict2items | rejectattr('key', 'equalto', 'default') -%}
+{% set filtered = dict(items | map(attribute='key') | zip(items | map(attribute='value'))) -%}
+{% set sorted_items = filtered | dictsort -%}
+{% if sorted_items | length > 0 -%}
+{% for item in sorted_items -%}
+{% set username = item[0] -%}
+{% set symbol = item[1] -%}
+{% if username == 'root' -%}
+{% set user_comparison = '$UID -eq 0' -%}
+{% else %}
+{% set user_comparison = '$USER == "' ~ username ~ '"' -%}
+{% endif %}
+{% if loop.first %}
+if [[ {{ user_comparison }} ]]; then
+{% else %}
+elif [[ {{ user_comparison }} ]]; then
+{% endif %}
+    prompt_symbol='{{ symbol }}'
+{% endfor -%}
+else
+    prompt_symbol='{{ prompt_map.default | default('\$') }}'
+fi
+{% else -%}
+prompt_symbol='{{ prompt_map.default | default('\$') }}'
+{% endif -%}
+{% endmacro %}
+
+{% if system_bash_disable_color_prompt is false %}
 # set a fancy prompt (non-color, unless we know we "want" color)
 case "$TERM" in
-    xterm-color|*-256color) color_prompt=yes;;
+    *-color|*-256color) color_prompt=yes;;
 esac
 
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
 {% if system_bash_force_color_prompt %}
 force_color_prompt=yes
 {% else %}
+# uncomment for a colored prompt, if the terminal has the capability
 #force_color_prompt=yes
 {% endif %}
 
@@ -27,9 +54,16 @@ if [ -n "$force_color_prompt" ]; then
 fi
 
 if [ "$color_prompt" = yes ]; then
-    PS1='{{ system_bash_color_prompt_header}}{{ system_bash_color_prompt_string }}'
+    {{ generate_prompt_symbol_conditional(system_bash_color_prompt_symbols) | indent(4) }}
+    PS1="{{ system_bash_color_prompt_header}}{{ system_bash_color_prompt_string }} ${prompt_symbol} "
 else
-    PS1='{{ system_bash_prompt_header }}{{ system_bash_prompt_string }}'
+    {{ generate_prompt_symbol_conditional(system_bash_prompt_symbols) | indent(4) }}
+    PS1="{{ system_bash_prompt_header }}{{ system_bash_prompt_string }} ${prompt_symbol} "
 fi
-unset color_prompt force_color_prompt
+unset color_prompt force_color_prompt prompt_symbol
+{% else %}
+{{ generate_prompt_symbol_conditional(system_bash_prompt_symbols) | indent(4) }}
+PS1="{{ system_bash_prompt_header }}{{ system_bash_prompt_string }} ${prompt_symbol} "
+unset prompt_symbol
+{% endif %}
 

@@ -94,18 +94,31 @@
       block:
         # Deploy banner message if it doesn't exist in config
         - name: Deploy banner message (autoconfig)
-          when: system_motd_static_messages | selectattr('name', 'search', '\d+-banner') | list | length == 0
           vars:
+            __system_motd_banner_priority: >-
+              {{
+                system_motd_static_messages
+                | selectattr('name', 'search', '\d+-banner')
+                | map(attribute='name')
+                | first
+                | regex_replace('^(\d+)-banner$', '\1')
+                | default('30')
+              }}
             __system_motd_message: "{{ system_motd_banner }}"
           ansible.builtin.template:
             src: etc/update-motd.d/static_msg.j2
-            dest: /etc/update-motd.d/30-banner
+            dest: /etc/update-motd.d/{{ __system_motd_banner_priority }}-banner
             owner: root
             group: root
             mode: "0755"
 
         - name: Deploy static message for update-motd
-          loop: "{{ system_motd_static_messages | rejectattr('state', 'eq', 'absent') }}"
+          loop: >-
+            {{
+              system_motd_static_messages
+              | rejectattr('name', 'search', '\d+-banner')
+              | rejectattr('state', 'eq', 'absent')
+            }}
           loop_control:
             loop_var: __system_motd_item
             label: "{{ __system_motd_item.name }}"
@@ -127,7 +140,15 @@
       changed_when: false   # yes, it's actually changed, but this is just the timestamp
 
     - name: Remove blacklisted motd files
-      loop: "{{ system_motd_blacklist + (system_motd_static_messages | selectattr('state', 'eq', 'absent') | map(attribute='name') | list) }}"
+      loop: >-
+        {{
+          system_motd_blacklist + (
+          system_motd_static_messages
+          | selectattr('state', 'defined')
+          | selectattr('state', 'eq', 'absent')
+          | map(attribute='name')
+          | list)
+        }}
       ansible.builtin.file:
         path: /etc/update-motd.d/{{ item }}
         state: absent
@@ -150,20 +171,32 @@
         group: root
         mode: "0755"
 
-    # Deploy banner message if it doesn't exist in config
-    - name: Deploy banner message (autoconfig)
-      when: system_motd_static_messages | selectattr('name', 'search', '\d+-banner') | list | length == 0
+    - name: Deploy banner message
       vars:
+        __system_motd_banner_priority: >-
+          {{
+            system_motd_static_messages
+            | selectattr('name', 'search', '\d+-banner')
+            | map(attribute='name')
+            | first
+            | regex_replace('^(\d+)-banner$', '\1')
+            | default('30')
+          }}
         __system_motd_message: "{{ system_motd_banner }}"
       ansible.builtin.template:
         src: etc/motd.d/static_msg.j2
-        dest: /etc/motd.d/30-banner
+        dest: /etc/motd.d/{{ __system_motd_banner_priority }}-banner
         owner: root
         group: root
         mode: "0644"
 
     - name: Copy motd file
-      loop: "{{ system_motd_static_messages | rejectattr('state', 'eq', 'absent') }}"
+      loop: >-
+        {{
+          system_motd_static_messages
+          | rejectattr('name', 'search', '\d+-banner')
+          | rejectattr('state', 'eq', 'absent')
+        }}
       loop_control:
         loop_var: __system_motd_item
         label: "{{ __system_motd_item.name }}"
@@ -185,7 +218,15 @@
       changed_when: false   # yes, it's actually changed, but this is just the timestamp
 
     - name: Remove blacklisted motd files
-      loop: "{{ system_motd_blacklist + (system_motd_static_messages | selectattr('state', 'eq', 'absent') | map(attribute='name') | list) }}"
+      loop: >-
+        {{
+          system_motd_blacklist + (
+          system_motd_static_messages
+          | selectattr('state', 'defined')
+          | selectattr('state', 'eq', 'absent')
+          | map(attribute='name')
+          | list)
+        }}
       ansible.builtin.file:
         path: /etc/motd.d/{{ item }}
         state: absent

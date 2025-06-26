@@ -48,6 +48,9 @@
       become: true
       ansible.builtin.blockinfile:
         path: "{{ __system_user_bashrc_file.path }}"
+        # Make sure this block exists in etc/skel/.bashrc.j2 template
+        #  including the "ANSIBLE MANAGED BLOCK" comments so as not to
+        #  break idempotency
         block: |2
           # Source global definitions
           if [ -f /etc/{{ __system_bashrc_filename }} ]; then
