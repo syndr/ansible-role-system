@@ -8,15 +8,6 @@ driver:
     managed: true
     login_cmd_template: 'docker exec -ti {instance} bash --login'
 platforms:
-  - name: role-system-fedora41
-    type: docker
-    image: geerlingguy/docker-fedora41-ansible:latest
-    systemd: True
-    modify_image: False
-    privileged: True
-    hostvars:
-      system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
-      system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
   - name: role-system-fedora42
     type: docker
     image: geerlingguy/docker-fedora42-ansible:latest
@@ -25,6 +16,7 @@ platforms:
     privileged: True
     hostvars:
       system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
+      system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
   - name: role-system-rocky9
     type: docker
     image: geerlingguy/docker-rockylinux9-ansible:latest
