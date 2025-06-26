@@ -6,12 +6,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '.github/workflows/role-system.yml'
-      - './**'
-      - '!*.md'
-    schedule:
-      - cron: '13 13 * * *'
+    paths-ignore:
+      - '**/*.md'
+  schedule:
+    - cron: '13 13 * * *'
 
 jobs:
   manage-system:

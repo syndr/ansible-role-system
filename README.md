@@ -1,6 +1,8 @@
 System Configuration
 =========
 
+[![Role - system](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml/badge.svg)](https://github.com/syndr/ansible-role-system/actions/workflows/role-system.yml)
+
 Configure the fundamentals of a linux system.
 
 These include:
