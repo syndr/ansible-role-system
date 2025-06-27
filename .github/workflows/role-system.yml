@@ -2,6 +2,25 @@
 
 name: Role - system
 on:
+  workflow_dispatch:
+    inputs:
+      runner-type:
+        required: true
+        description: 'Type of Github runner to use for the test'
+        type: string
+        default: 'ubuntu-22.04'
+      log-level:
+        required: true
+        description: 'Log level for the test'
+        type: choice
+        default: '0'
+        options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
   pull_request:
   push:
     branches:
@@ -9,7 +28,8 @@ on:
     paths-ignore:
       - '**/*.md'
   schedule:
-    - cron: '13 13 * * *'
+    # Run once a week on Sunday at 13:13 UTC
+    - cron: '13 13 * * 0'
 
 jobs:
   manage-system:
@@ -23,13 +43,16 @@ jobs:
           - role-system-docker
 
     if: >
-      (github.event_name == 'pull_request' ||
-      (github.event_name == 'push' && github.ref_name == 'main'))
+      (github.event_name == 'schedule' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/_run-molecule-test.yml
     with:
       scenario: ${{ matrix.molecule-scenario }}
       python-version: ${{ matrix.python-version }}
       python-dependencies: boto3
-      runner-type: ubuntu-22.04
+      runner-type: ${{ inputs.runner-type || 'ubuntu-22.04' }}
+      log-level: ${{ inputs.log-level || '0' }}
     secrets: inherit
 
