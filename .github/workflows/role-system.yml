@@ -52,7 +52,7 @@ jobs:
       scenario: ${{ matrix.molecule-scenario }}
       python-version: ${{ matrix.python-version }}
       python-dependencies: boto3
-      runner-type: ubuntu-22.04
+      runner-type: ${{ inputs.runner-type || 'ubuntu-22.04' }}
       log-level: ${{ inputs.log-level || '0' }}
     secrets: inherit
 

@@ -61,7 +61,7 @@ jobs:
         env:
           ANSIBLE_VAULT_IDENTITY: ${{ inputs.vault-identity }}
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
-          ANSIBLE_VERBOSITY: ${{ runner.debug || inputs.log-level || '0' }}
+          ANSIBLE_VERBOSITY: ${{ runner.debug || inputs.log-level }}
           # Make molecule output colored content (easier to read via GH UI)
           PY_COLORS: 1
           ANSIBLE_FORCE_COLOR: 1
