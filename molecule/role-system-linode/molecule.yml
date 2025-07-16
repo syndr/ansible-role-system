@@ -1,0 +1,124 @@
+---
+role_name_check: 0
+dependency:
+  name: galaxy
+driver:
+  name: default
+  options:
+    managed: true
+platforms:
+  - name: role-system-fedora41
+    type: linode
+    image: linode/fedora41
+    region: us-east
+    type_spec: g6-nanode-1
+    ssh_user: root
+    hostvars:
+      org: molecule
+      env: ci
+      system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
+      system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
+  - name: role-system-rocky9
+    type: linode
+    image: linode/rocky9
+    region: us-east
+    type_spec: g6-nanode-1
+    ssh_user: root
+    hostvars:
+      org: molecule
+      env: ci
+  - name: role-system-ubuntu2204
+    type: linode
+    image: linode/ubuntu22.04
+    region: us-east
+    type_spec: g6-nanode-1
+    ssh_user: root
+    hostvars:
+      org: molecule
+      env: ci
+      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
+      system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_bash_prompt_symbols: {}      # Test with no prompt symbols
+      system_bash_color_prompt_symbols: {} # Test with no prompt symbols
+  - name: role-system-ubuntu2404
+    type: linode
+    image: linode/ubuntu24.04
+    region: us-east
+    type_spec: g6-nanode-1
+    ssh_user: root
+    hostvars:
+      org: molecule
+      env: ci
+      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
+      system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+provisioner:
+  name: ansible
+  log: True
+  playbooks:
+    create: ../resources/create.yml
+    prepare: ../resources/prepare.yml
+    converge: ../resources/converge.yml
+    side_effect: ../resources/side_effect.yml
+    verify: ../resources/verify.yml
+    cleanup: ../resources/cleanup.yml
+    destroy: ../resources/destroy.yml
+  inventory:
+    group_vars:
+      all:
+        org: molecule
+        env: ci
+        system_enable_hostname: true   # Linode supports hostname changes
+  config_options:
+    defaults:
+      gathering: explicit
+      playbook_vars_root: top
+      verbosity: ${ANSIBLE_VERBOSITY:-0}
+  env:
+    ANSIBLE_ROLES_PATH: /usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles:${PWD}/roles:${PWD}/../roles:${PWD}/../../roles
+    ANSIBLE_COLLECTIONS_PATH: /usr/share/ansible/collections:~/.ansible/collections:${PWD}/collections:${PWD}/../collections:${PWD}/../../collections
+    LINODE_API_TOKEN: ${LINODE_API_TOKEN}
+    ARA_API_CLIENT: ${ARA_API_CLIENT:-'http'}
+    ARA_API_SERVER: ${ARA_API_SERVER:-'http://localhost:8000'}
+    ARA_DEFAULT_LABELS: ${ARA_DEFAULT_LABELS:-'testing,molecule,linode'}
+    # To use Ara with molecule:
+    #  export the ANSIBLE_CALLBACK_PLUGINS env var with the output of 'python3 -m ara.setup.callback_plugins'
+    ANSIBLE_CALLBACK_PLUGINS: ${ANSIBLE_CALLBACK_PLUGINS}
+scenario:
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+verifier:
+  name: ansible
+  enabled: true
