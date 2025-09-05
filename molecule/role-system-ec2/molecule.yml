@@ -7,11 +7,23 @@ driver:
   options:
     managed: true
 platforms:
-  - name: role-system-ec2-al2
+  - name: role-system-ec2-rocky10
     type: ec2
-    image: ami-0d61ea20f09848335    # Amazon Linux 2 AMI (HVM) - Kernel 5.10
+    image: ami-0efe0bc32b69b2efe    # Rocky Linux 10 (Official) - x86_64
     region: us-east-2
-    instance_type: t3.micro
+    instance_type: t3.small
+    ssh_user: molecule_runner
+    vpc_id: vpc-0eb9fd1391f4207ec
+    vpc_subnet_id: subnet-0aa189c0d6fc53923
+    boot_wait_seconds: 5
+    hostvars:
+      org: molecule
+      env: ci
+  - name: role-system-ec2-rocky9arm
+    type: ec2
+    image: ami-08dc10d7a4f808a53    # Rocky Linux 9 (Official) - aarch64
+    region: us-east-2
+    instance_type: t4g.micro
     ssh_user: molecule_runner
     vpc_id: vpc-0eb9fd1391f4207ec
     vpc_subnet_id: subnet-0aa189c0d6fc53923
