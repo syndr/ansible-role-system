@@ -1,0 +1,8 @@
+# Base python module requirements for Molecule tests and general project use
+
+ansible-core>=2.19
+ansible-lint
+requests>=2.32.3
+molecule>=25.7.0
+boto3[crt]
+

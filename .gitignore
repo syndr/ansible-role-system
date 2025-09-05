@@ -1,0 +1,5 @@
+# Ansible molecule project gitignore
+
+venv/
+.ansible/
+

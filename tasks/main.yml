@@ -22,10 +22,7 @@
 - name: Set system hostname
   tags: system-hostname
   when: system_enable_hostname
-  become: true
-  ansible.builtin.hostname:
-    name: "{{ system_hostname }}"
-    use: systemd
+  ansible.builtin.include_tasks: hostname.yml
 
 # Do this early, for more breadcrumbs if something later fails 💡
 - name: Set MOTD

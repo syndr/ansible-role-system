@@ -1,0 +1,17 @@
+---
+# Set system hostname
+
+- name: Validate hostname configuration
+  ansible.builtin.assert:
+    that:
+      # provided hostname contains only valid characters
+      - system_hostname is match("^[a-zA-Z0-9.-]+$")
+    fail_msg: >-
+      The provided system_hostname '{{ system_hostname }}' contains invalid characters.
+      Only letters, numbers, dots, and hyphens are allowed.
+
+- name: Set system hostname
+  become: true
+  ansible.builtin.hostname:
+    name: "{{ system_hostname }}"
+    use: systemd

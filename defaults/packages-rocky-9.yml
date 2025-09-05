@@ -1,9 +1,10 @@
 ---
-# Packages for Rocky Linux 9
+# Packages for Rocky Linux
 
 system_packages_base:
   - git
   - jq
+  - mlocate
   - nc
   - python3-pip
   - rsync

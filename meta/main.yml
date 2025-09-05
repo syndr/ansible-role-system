@@ -39,6 +39,7 @@ galaxy_info:
         - 41
     - name: Rocky
       versions:
+        - 10
         - 9
     - name: Ubuntu
       versions:
