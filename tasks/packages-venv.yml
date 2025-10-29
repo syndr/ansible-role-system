@@ -1,12 +1,21 @@
 ---
 # Manage Python virtual environments for Ansible and system automation
 
-- name: Check if venv module is available
+- name: Check if venv and ensurepip modules are available
   ansible.builtin.command:
-    cmd: "{{ system_venv_python_cmd }} -m venv --help"
+    cmd: "{{ system_venv_python_cmd }} -c 'import venv, ensurepip'"
   register: __system_venv_check
   changed_when: false
   failed_when: false
+
+- name: Detect Python version for package installation
+  when:
+    - __system_venv_check.rc != 0
+    - ansible_os_family == "Debian"
+  ansible.builtin.command:
+    cmd: "{{ system_venv_python_cmd }} -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
+  register: __system_python_version
+  changed_when: false
 
 - name: Ensure python3-venv package is installed
   when: __system_venv_check.rc != 0
@@ -31,7 +40,7 @@
     - name: Install python3-venv (apt) - Debian/Ubuntu
       when: ansible_os_family == "Debian"
       ansible.builtin.apt:
-        name: python3-venv
+        name: "python{{ __system_python_version.stdout | default('3') }}-venv"
         state: present
         update_cache: true
   rescue:
@@ -58,7 +67,13 @@
 
           For more information, see the system role README.
 
+- name: Check if venv already exists
+  ansible.builtin.stat:
+    path: "{{ system_venv_path }}"
+  register: __system_venv_exists
+
 - name: Create Python virtual environment
+  when: not __system_venv_exists.stat.exists
   become: true
   ansible.builtin.pip:
     name: pip
@@ -67,6 +82,7 @@
     virtualenv_command: "{{ system_venv_python_cmd }} -m venv"
 
 - name: Set virtual environment ownership
+  when: not __system_venv_exists.stat.exists
   become: true
   ansible.builtin.file:
     path: "{{ system_venv_path }}"
