@@ -1,10 +1,23 @@
 ---
 # The side effect playbook executes actions which produce side effects to the instances(s). Intended to test HA failover scenarios or the like.
 
-- name: Test side effects
+- name: Test role execution with only MOTD feature enabled
   hosts: molecule
   tasks:
-    - name: No side effect tests configured
-      ansible.builtin.debug:
-        msg: Add side-effect tests here!
+    - name: Run system role with only MOTD enabled
+      ansible.builtin.include_role:
+        name: system
+      vars:
+        ansible_user: molecule_runner
+        system_motd_config_version: molecule-ci-test
+        system_default: false
+        system_enable_motd: true
+
+    - name: Verify execution state
+      ansible.builtin.assert:
+        that:
+          - system_ntp_configured is not defined
+        fail_msg: >
+          NTP configuration should not run with only MOTD feature enabled! Something went wrong!
+        success_msg: "NTP configuration is disabled as expected!"
 
