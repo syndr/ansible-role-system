@@ -11,6 +11,13 @@
       - 'ansible_env'
       - 'ansible_pkg_mgr'
 
+- name: Manage Python virtual environments
+  tags: system-venv
+  when: system_enable_venv
+  block:
+    - name: Configure Python virtual environment
+      ansible.builtin.include_tasks: packages-venv.yml
+
 - name: Deploy configuration dependencies
   tags:
     - system-utils

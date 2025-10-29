@@ -44,6 +44,8 @@ platforms:
     hostvars:
       system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_enable_pip_packages: false   # Deprecated - using venv instead
+      system_enable_venv: true   # Use venv for Python packages (modern approach)
   - name: role-system-amazon2023
     type: docker
     image: geerlingguy/docker-amazonlinux2023-ansible:latest
@@ -59,6 +61,8 @@ platforms:
         grep: "grep --color=auto"
         fgrep: "fgrep --color=auto"
         egrep: "egrep --color=auto"
+      system_enable_pip_packages: false   # Deprecated - using venv instead
+      system_enable_venv: true   # Use venv for Python packages (modern approach)
 provisioner:
   name: ansible
   log: True

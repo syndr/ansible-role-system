@@ -33,6 +33,34 @@ These include:
 - System cron jobs
 - System MOTD
 
+## Deprecation Notices
+
+**Global pip package installation is deprecated** and will be removed in a future version.
+
+The `system_enable_pip_packages` feature and related variables (`system_packages_pip3_base`, `system_packages_pip3_extra`) are deprecated. Modern Python environments (Ubuntu 22.04+) block global pip installations per PEP 668 to prevent conflicts with system-managed packages.
+
+**Migration Path:**
+
+Instead of:
+```yaml
+system_enable_pip_packages: true
+system_packages_pip3_base:
+  requests:
+    version: ">=2.32.2"
+  boto3: {}
+```
+
+Use:
+```yaml
+system_enable_venv: true
+system_venv_packages_base:
+  requests:
+    version: ">=2.32.2"
+  boto3: {}
+```
+
+The venv approach provides isolated Python environments, prevents conflicts with system packages, and works on all modern distributions including Ubuntu 22.04+.
+
 Requirements
 ------------
 
@@ -87,7 +115,11 @@ system_enable_motd: "{{ system_default }}"
 system_enable_logging: "{{ system_default }}"
 
 # Install system-wide pip packages
-system_enable_pip_packages: "{{ system_default }}"
+# DEPRECATED: Use system_enable_venv instead. See deprecation notice below.
+system_enable_pip_packages: "{{ system_default_enable }}"
+
+# Manage Python virtual environments for Ansible and system automation
+system_enable_venv: "{{ system_default_enable }}"
 
 # Manage system timezone
 system_enable_timezone: "{{ system_default }}"
@@ -383,11 +415,13 @@ system_packages_base: DEFAULT
 system_packages_extra: []
 
 # Pip3 packages that should be installed as the root user
+# DEPRECATED: Use system_venv_packages_base instead
 system_packages_pip3_base:
   requests:
-    version: "2.31.0"
+    version: ">=2.32.2"
 
 # Pip3 packages that should be installed in addition to the base packages. Installed as the root user. Usage same as system_packages_extra
+# DEPRECATED: Use system_venv_packages_extra instead
 system_packages_pip3_extra: {}
 
 # Number of kernels permitted on a system
@@ -413,6 +447,45 @@ system_packages_auto_update_weekly_schedule:
 # Random wait time for package updates (in minutes)
 #  - applied to daily and weekly updates
 system_packages_auto_update_random_wait: 360
+
+# }}}
+
+
+## Python Virtual Environment Configuration ## {{{
+
+# Path where the Python virtual environment should be created
+system_venv_path: /opt/ansible-venv
+
+# Python packages that should be installed in the virtual environment
+# - Format is the same as system_packages_pip3_base (dict with optional version keys)
+system_venv_packages_base:
+  requests:
+    version: ">=2.32.2"
+  pyyaml: {}
+  jinja2: {}
+
+# Additional Python packages that should be installed in the virtual environment
+# - Meant to be overridden by the playbook running this role
+# - Format is the same as system_venv_packages_base
+system_venv_packages_extra: {}
+
+# Owner of the virtual environment directory
+system_venv_owner: root
+
+# Group of the virtual environment directory
+system_venv_group: root
+
+# Permissions mode for the virtual environment directory
+system_venv_mode: '0755'
+
+# Automatically set ansible_python_interpreter to use the venv Python
+# - When enabled, sets ansible_python_interpreter as a fact for subsequent tasks
+# - This ensures Ansible uses the venv Python for all module execution on the target host
+system_venv_set_interpreter: true
+
+# Python version command to use for creating the venv (e.g., python3, python3.11)
+# - Set to empty string to use the default 'python3'
+system_venv_python_cmd: python3
 
 # }}}
 
