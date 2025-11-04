@@ -1,22 +1,38 @@
 ---
 
-- name: Gather some host facts
-  tags: always
-  ansible.builtin.setup:
-    filter:
-      - 'ansible_date_time'
-      - 'ansible_distribution*'
-      - 'ansible_os_family'
-      - 'ansible_*_mb'
-      - 'ansible_env'
-      - 'ansible_pkg_mgr'
-
 - name: Manage Python virtual environments
   tags: system-venv
-  when: system_enable_venv
+  vars:
+    # Interpreter discovery would appear to honor the 'omit' magic value here 🤫
+    # Also note: variable precedence is of particular importance for this to work
+    #   see: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#understanding-variable-precedence
+    ansible_python_interpreter: "{{ system_python_bootstrap_interpreter | default(omit) }}"
   block:
+    - name: "DEBUG: Show bootstrap python interpreter configuration"
+      ansible.builtin.debug:
+        msg: |
+          Bootstrap interpreter: "{{ system_python_bootstrap_interpreter | default('UNDEFINED') }}"
+          Ansible interpreter: "{{ ansible_python_interpreter | default(discovered_interpreter_python) | default('UNDEFINED') }}"
+        verbosity: 1
+
+    - name: Gather some host facts (with bootstrap interpreter)
+      ansible.builtin.setup:
+        filter:
+          - 'ansible_date_time'
+          - 'ansible_distribution*'
+          - 'ansible_os_family'
+          - 'ansible_*_mb'
+          - 'ansible_env'
+          - 'ansible_pkg_mgr'
+
     - name: Configure Python virtual environment
+      when: system_enable_venv
       ansible.builtin.include_tasks: packages-venv.yml
+
+- name: Show configured Python interpreter
+  tags: system-venv
+  ansible.builtin.debug:
+    msg: "Using Python interpreter at {{ ansible_python_interpreter | default(discovered_interpreter_python) }}"
 
 - name: Deploy configuration dependencies
   tags:

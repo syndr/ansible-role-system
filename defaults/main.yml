@@ -405,11 +405,18 @@ system_venv_mode: '0755'
 
 # Automatically set ansible_python_interpreter to use the venv Python
 # - When enabled, sets ansible_python_interpreter as a fact for subsequent tasks
-# - This ensures Ansible uses the venv Python for all module execution on the target host
-system_venv_set_interpreter: true
+# - This ensures Ansible uses the venv Python for all subsequent module execution
+#   on the target host (for the current playbook run only)
+system_venv_set_interpreter: false
 
 # Python version command to use for creating the venv (e.g., python3, python3.11)
 system_venv_python_cmd: python3
+
+# Python interpreter to use for bootstrapping venv on fresh hosts
+# - Used during venv creation when inventory ansible_python_interpreter points to venv that doesn't exist yet
+# - Set to empty string to disable bootstrap override (use inventory interpreter)
+# - Typically set to system Python path: /usr/bin/python3
+system_python_bootstrap_interpreter: /usr/bin/python3
 
 # }}}
 

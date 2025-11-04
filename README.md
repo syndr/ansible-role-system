@@ -487,6 +487,12 @@ system_venv_set_interpreter: true
 # - Set to empty string to use the default 'python3'
 system_venv_python_cmd: python3
 
+# Python interpreter to use for bootstrapping venv on fresh hosts
+# - Used during venv creation when inventory ansible_python_interpreter points to venv that doesn't exist yet
+# - Set to empty string to disable bootstrap override (use inventory interpreter)
+# - Typically set to system Python path: /usr/bin/python3
+system_python_bootstrap_interpreter: /usr/bin/python3
+
 # }}}
 
 
