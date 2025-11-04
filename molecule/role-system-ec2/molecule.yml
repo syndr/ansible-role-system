@@ -36,6 +36,57 @@ platforms:
 provisioner:
   name: ansible
   log: True
+  inventory:
+    group_vars:
+      molecule:
+        system_cron_jobs:
+          - name: "absolute_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+          - name: "absolute_scheduling_alternate_user_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "{{ ansible_user }}"
+          - name: "relative_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            weekday: 3
+            user: "root"
+          - name: "special_scheduling_test"
+            job: "echo 'Hello, World!'"
+            special_time: "hourly"
+            user: "root"
+          - name: "environment_variable_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+            env:
+              TEST_ENV_VAR: "test_value"
+        system_alternatives:
+          - name: test_alternative
+            link: /usr/bin/smash
+            path: /usr/bin/bash
+        system_path_append:
+          - /opt/bin
+        system_motd_status_data:
+          Status: "\\033[2;34mMOLECULE CI \\033[1;34mTEST INSTANCE\\033[0m"
+        system_bash_force_color_prompt: true
+        system_bashrc_overwrite_existing: true
+        system_user_environment_vars:
+          root:
+          molecule_runner:
+            I_AM_ROBOT: "true"
   playbooks:
     create: ../resources/create.yml
     prepare: ../resources/prepare.yml

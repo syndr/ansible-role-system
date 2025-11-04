@@ -17,6 +17,7 @@ platforms:
     hostvars:
       system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
       system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
+      ci_custom_python_interpreter: /opt/ansible-venv/bin/python  # Test with venv interpreter
   - name: role-system-rocky9
     type: docker
     image: geerlingguy/docker-rockylinux9-ansible:latest
@@ -35,6 +36,7 @@ platforms:
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
       system_bash_prompt_symbols: {}      # Test with no prompt symbols
       system_bash_color_prompt_symbols: {} # Test with no prompt symbols
+      system_venv_set_interpreter: true  # Test with python interpreter override
   - name: role-system-ubuntu2404
     type: docker
     image: geerlingguy/docker-ubuntu2404-ansible:latest
@@ -66,6 +68,57 @@ platforms:
 provisioner:
   name: ansible
   log: True
+  inventory:
+    group_vars:
+      molecule:
+        system_cron_jobs:
+          - name: "absolute_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+          - name: "absolute_scheduling_alternate_user_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "{{ ansible_user }}"
+          - name: "relative_scheduling_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            weekday: 3
+            user: "root"
+          - name: "special_scheduling_test"
+            job: "echo 'Hello, World!'"
+            special_time: "hourly"
+            user: "root"
+          - name: "environment_variable_test"
+            job: "echo 'Hello, World!'"
+            minute: "*/1"
+            hour: "*"
+            day: "*"
+            month: "*"
+            user: "root"
+            env:
+              TEST_ENV_VAR: "test_value"
+        system_alternatives:
+          - name: test_alternative
+            link: /usr/bin/smash
+            path: /usr/bin/bash
+        system_path_append:
+          - /opt/bin
+        system_motd_status_data:
+          Status: "\\033[2;34mMOLECULE CI \\033[1;34mTEST INSTANCE\\033[0m"
+        system_bash_force_color_prompt: true
+        system_bashrc_overwrite_existing: true
+        system_user_environment_vars:
+          root:
+          molecule_runner:
+            I_AM_ROBOT: "true"
   playbooks:
     create: ../resources/create.yml
     prepare: ../resources/prepare.yml
