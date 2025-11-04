@@ -6,6 +6,8 @@
   block:
     - name: Check for OS version-specific packages list
       delegate_to: 127.0.0.1
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
       ansible.builtin.stat:
         path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
       register: __ac_packages_os_ver_specific_stat
@@ -16,6 +18,8 @@
 
     - name: Check for OS distribution packages list
       delegate_to: 127.0.0.1
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
       ansible.builtin.stat:
         path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}.yml"
       register: __ac_packages_os_specific_stat

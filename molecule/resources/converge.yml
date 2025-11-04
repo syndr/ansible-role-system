@@ -17,8 +17,7 @@
         fail_msg: |
           molecule group was not found inside inventory groups: {{ groups }}
 
-- name: Converge (hosts with autodiscovered python)
-  #hosts: molecule:!role-system-fedora42
+- name: Converge
   hosts: molecule
   vars:
     ansible_user: molecule_runner
@@ -50,15 +49,3 @@
       tags: always
       ansible.builtin.include_role:
         name: system
-
-- name: Converge (hosts with custom python interpreter)
-  hosts: role-system-fedora42not
-  vars:
-    ansible_user: molecule_runner
-    ansible_python_interpreter: "{{ ci_custom_python_interpreter }}"
-  tasks:
-    - name: Load system role
-      tags: always
-      ansible.builtin.include_role:
-        name: system
-
