@@ -7,6 +7,15 @@ then
 fi
 export PATH
 
+# Load user environment variables (before interactive check)
+if [ -d ~/.bashrc.d ]; then
+    for rc in ~/.bashrc.d/*; do
+        if [ -f "$rc" ]; then
+            . "$rc"
+        fi
+    done
+fi
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
@@ -41,15 +50,6 @@ esac
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
-fi
-
-# User specific aliases and functions
-if [ -d ~/.bashrc.d ]; then
-    for rc in ~/.bashrc.d/*; do
-        if [ -f "$rc" ]; then
-            . "$rc"
-        fi
-    done
 fi
 
 # enable programmable completion features (you don't need to enable

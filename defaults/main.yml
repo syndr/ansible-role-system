@@ -185,12 +185,24 @@ system_bashrc_overwrite_existing: false
 
 ### }}}
 
-
 ### Shell Environment Variable Configuration ### {{{
+
+# Control where system-wide environment variables are deployed
+# - profile.d: Sourced by login shells (SSH, bash -l, console login)
+#              Works reliably across all distributions (RHEL, Ubuntu, Debian)
+#              Required for automation, cron jobs, and SSH sessions
+# - bashrc.d: Sourced by interactive non-login shells (new terminal tabs)
+#             Works on RHEL-based systems for all shell types
+#             Ensures GUI terminal sessions get environment variables
+#
+# Recommendation: Enable both for maximum compatibility across all scenarios
+system_environment_set_profile: true
+system_environment_set_bashrc: true
 
 # Name of the file in which the defined environment variables should be stored
 #  - File will be stored in:
-#    - [global] /etc/bashrc.d/{{ system_environment_filename }}.sh
+#    - [global] /etc/profile.d/{{ system_environment_filename }}.sh (if set_profile)
+#    - [global] /etc/bashrc.d/{{ system_environment_filename }}.sh (if set_bashrc)
 #    - [user] ~/.bashrc.d/{{ system_environment_filename }}.sh
 system_environment_filename: ansible_default_env
 
@@ -226,7 +238,6 @@ system_global_environment_vars:
 #      root:
 #        EDITOR: "vim"
 system_user_environment_vars: {}
-
 
 ### }}}
 

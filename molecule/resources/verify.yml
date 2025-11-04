@@ -6,6 +6,11 @@
   vars:
     ansible_user: molecule_runner
   tasks:
+    - name: Load test configuration
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
+
     - name: Load system facts
       ansible.builtin.setup:
         gather_subset:
