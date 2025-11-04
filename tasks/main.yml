@@ -12,7 +12,7 @@
       ansible.builtin.debug:
         msg: |
           Bootstrap interpreter: "{{ system_python_bootstrap_interpreter | default('UNDEFINED') }}"
-          Ansible interpreter: "{{ ansible_python_interpreter | default(discovered_interpreter_python) | default('UNDEFINED') }}"
+          Ansible interpreter: "{{ ansible_python_interpreter | default('auto') }}"
         verbosity: 1
 
     - name: Gather some host facts (with bootstrap interpreter)
@@ -28,11 +28,6 @@
     - name: Configure Python virtual environment
       when: system_enable_venv
       ansible.builtin.include_tasks: packages-venv.yml
-
-- name: Show configured Python interpreter
-  tags: system-venv
-  ansible.builtin.debug:
-    msg: "Using Python interpreter at {{ ansible_python_interpreter | default(discovered_interpreter_python) }}"
 
 - name: Deploy configuration dependencies
   tags:
