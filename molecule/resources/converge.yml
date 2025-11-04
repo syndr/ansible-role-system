@@ -23,6 +23,11 @@
     ansible_user: molecule_runner
     ansible_python_interpreter: "{{ ci_custom_python_interpreter | default(omit) }}"
   tasks:
+    - name: Load test configuration
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
+
     - name: For non-bootstrap hosts
       when: ci_custom_python_interpreter is not defined
       block:

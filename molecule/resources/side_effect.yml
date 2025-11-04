@@ -4,6 +4,11 @@
 - name: Test role execution with only MOTD feature enabled
   hosts: molecule
   tasks:
+    - name: Load test configuration
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
+
     - name: Run system role with only MOTD enabled
       ansible.builtin.include_role:
         name: system

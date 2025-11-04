@@ -64,7 +64,7 @@ provisioner:
     destroy: ../resources/destroy.yml
   inventory:
     group_vars:
-      all:
+      molecule:
         org: molecule
         env: ci
         system_enable_hostname: true   # Linode supports hostname changes
