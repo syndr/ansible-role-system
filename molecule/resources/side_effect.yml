@@ -26,3 +26,21 @@
           NTP configuration should not run with only MOTD feature enabled! Something went wrong!
         success_msg: "NTP configuration is disabled as expected!"
 
+- name: Test package removal from virtual environment
+  hosts: molecule
+  tasks:
+    - name: Load test configuration
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
+
+    - name: Run system role with venv package removal
+      vars:
+        ansible_user: molecule_runner
+        system_default: false
+        system_enable_venv: true
+        system_venv_packages_remove:
+          - pytz
+      ansible.builtin.include_role:
+        name: system
+
