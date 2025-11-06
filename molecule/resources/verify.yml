@@ -121,11 +121,9 @@
           register: __ci_venv_packages
           changed_when: false
 
-        - name: Parse venv packages
-          ansible.builtin.set_fact:
-            __ci_venv_packages_list: "{{ __ci_venv_packages.stdout | from_json | map(attribute='name') | map('lower') | list }}"
-
         - name: Verify base packages are installed in venv
+          vars:
+            __ci_venv_packages_list: "{{ __ci_venv_packages.stdout | from_json | map(attribute='name') | map('lower') | list }}"
           ansible.builtin.assert:
             that:
               - "'requests' in __ci_venv_packages_list | default([])"

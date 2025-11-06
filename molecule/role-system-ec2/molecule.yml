@@ -16,9 +16,7 @@ platforms:
     vpc_id: vpc-0eb9fd1391f4207ec
     vpc_subnet_id: subnet-0aa189c0d6fc53923
     boot_wait_seconds: 5
-    hostvars:
-      org: molecule
-      env: ci
+    hostvars: {}
   - name: role-system-ec2-rocky9arm
     type: ec2
     image: ami-08dc10d7a4f808a53    # Rocky Linux 9 (Official) - aarch64
@@ -29,8 +27,6 @@ platforms:
     vpc_subnet_id: subnet-0aa189c0d6fc53923
     boot_wait_seconds: 5
     hostvars:
-      org: molecule
-      env: ci
       # Test legacy system-wide pip package installation
       system_enable_pip_packages: true
 provisioner:

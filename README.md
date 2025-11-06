@@ -54,9 +54,8 @@ Use:
 ```yaml
 system_enable_venv: true
 system_venv_packages_base:
-  requests:
-    version: ">=2.32.2"
-  boto3: {}
+  - "requests>=2.32.2"
+  - "boto3"
 ```
 
 The venv approach provides isolated Python environments, prevents conflicts with system packages, and works on all modern distributions including Ubuntu 22.04+.
@@ -457,17 +456,23 @@ system_packages_auto_update_random_wait: 360
 system_venv_path: /opt/ansible-venv
 
 # Python packages that should be installed in the virtual environment
-# - Format is the same as system_packages_pip3_base (dict with optional version keys)
+# - List of package specifications in pip format (e.g., "package>=1.0.0", "package==2.1.0", "package")
+# - Version specifiers are optional and follow pip syntax
 system_venv_packages_base:
-  requests:
-    version: ">=2.32.2"
-  pyyaml: {}
-  jinja2: {}
+  - "requests>=2.32.2"
+  - "pyyaml"
+  - "jinja2"
 
 # Additional Python packages that should be installed in the virtual environment
 # - Meant to be overridden by the playbook running this role
-# - Format is the same as system_venv_packages_base
-system_venv_packages_extra: {}
+# - Format is the same as system_venv_packages_base (list of pip package specs)
+system_venv_packages_extra: []
+
+# State for virtual environment packages (present, latest, absent, etc.)
+# - 'present': Install package if not already installed (default)
+# - 'latest': Install or upgrade to the latest version
+# - 'absent': Remove the package
+system_venv_packages_state: present
 
 # Owner of the virtual environment directory
 system_venv_owner: root

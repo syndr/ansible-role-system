@@ -7,7 +7,6 @@
       and will be removed in a future version. Modern Python environments (Ubuntu 22.04+) block
       global pip installs per PEP 668. Please migrate to system_enable_venv instead.
       Migration: Set system_enable_venv=true and move packages to system_venv_packages_base/extra.
-      This feature will be removed in version 3.0.0.
 
 - name: OS support warning
   when: ansible_distribution | lower == 'ubuntu'
