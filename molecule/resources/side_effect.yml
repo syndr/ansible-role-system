@@ -10,13 +10,13 @@
         file: "{{ playbook_dir }}/vars/main.yml"
 
     - name: Run system role with only MOTD enabled
-      ansible.builtin.include_role:
-        name: system
       vars:
         ansible_user: molecule_runner
         system_motd_config_version: molecule-ci-test
         system_default: false
         system_enable_motd: true
+      ansible.builtin.include_role:
+        name: system
 
     - name: Verify execution state
       ansible.builtin.assert:

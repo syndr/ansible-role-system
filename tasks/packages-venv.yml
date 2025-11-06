@@ -75,9 +75,18 @@
 - name: Create Python virtual environment
   when: not __system_venv_exists.stat.exists
   become: true
+  vars:
+    # Pip is needed for managing packages; ensure it's installed
+    __system_pip_package_state: >-
+      {{
+        system_venv_packages_state
+        if system_venv_packages_state in ['present', 'latest']
+        else
+        'present'
+      }}
   ansible.builtin.pip:
     name: pip
-    state: present
+    state: "{{ __system_pip_package_state }}"
     virtualenv: "{{ system_venv_path }}"
     virtualenv_command: "{{ system_venv_python_cmd }} -m venv"
 
@@ -93,27 +102,19 @@
     recurse: true
 
 - name: Install base packages in virtual environment
-  loop: "{{ system_venv_packages_base | dict2items }}"
-  loop_control:
-    loop_var: __system_venv_package
-  when: system_venv_packages_base is truthy
+  when: system_venv_packages_base | length > 0
   become: true
   ansible.builtin.pip:
-    name: "{{ __system_venv_package.key }}"
-    version: "{{ __system_venv_package.value.version | default(omit) }}"
-    state: present
+    name: "{{ system_venv_packages_base }}"
+    state: "{{ system_venv_packages_state }}"
     virtualenv: "{{ system_venv_path }}"
 
 - name: Install extra packages in virtual environment
-  loop: "{{ system_venv_packages_extra | dict2items }}"
-  loop_control:
-    loop_var: __system_venv_package
-  when: system_venv_packages_extra is truthy
+  when: system_venv_packages_extra | length > 0
   become: true
   ansible.builtin.pip:
-    name: "{{ __system_venv_package.key }}"
-    version: "{{ __system_venv_package.value.version | default(omit) }}"
-    state: present
+    name: "{{ system_venv_packages_extra }}"
+    state: "{{ system_venv_packages_state }}"
     virtualenv: "{{ system_venv_path }}"
 
 - name: Set runtime python interpreter
