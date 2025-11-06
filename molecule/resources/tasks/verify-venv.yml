@@ -1,0 +1,127 @@
+---
+# Verify Python virtual environment configuration
+
+- name: Check that venv directory exists
+  ansible.builtin.stat:
+    path: /opt/ansible-venv
+  register: __ci_venv_dir
+
+- name: Verify venv directory exists
+  ansible.builtin.assert:
+    that:
+      - __ci_venv_dir.stat.exists | default(false)
+      - __ci_venv_dir.stat.isdir | default(false)
+    fail_msg: |
+      Virtual environment directory does not exist or is not a directory at /opt/ansible-venv
+      - exists: {{ __ci_venv_dir.stat.exists | default('N/A') }}
+      - is directory: {{ __ci_venv_dir.stat.isdir | default('N/A') }}
+      - path checked: /opt/ansible-venv
+    success_msg: "Virtual environment directory exists!"
+
+- name: Check that venv Python interpreter exists
+  ansible.builtin.stat:
+    path: /opt/ansible-venv/bin/python
+  register: __ci_venv_python
+
+- name: Verify venv Python interpreter exists and is executable
+  ansible.builtin.assert:
+    that:
+      - __ci_venv_python.stat.exists | default(false)
+      - __ci_venv_python.stat.executable | default(false)
+    fail_msg: |
+      Virtual environment Python interpreter does not exist or is not executable
+      - exists: {{ __ci_venv_python.stat.exists | default('N/A') }}
+      - executable: {{ __ci_venv_python.stat.executable | default('N/A') }}
+      - mode: {{ __ci_venv_python.stat.mode | default('N/A') }}
+      - path checked: /opt/ansible-venv/bin/python
+    success_msg: "Virtual environment Python interpreter exists and is executable!"
+
+- name: Verify venv ownership and permissions
+  ansible.builtin.assert:
+    that:
+      - __ci_venv_dir.stat.pw_name | default('') == "root"
+      - __ci_venv_dir.stat.gr_name | default('') == "root"
+      - __ci_venv_dir.stat.mode | default('') == "0755"
+    fail_msg: |
+      Virtual environment ownership or permissions are incorrect
+      - Expected owner: root, Actual: {{ __ci_venv_dir.stat.pw_name | default('N/A') }}
+      - Expected group: root, Actual: {{ __ci_venv_dir.stat.gr_name | default('N/A') }}
+      - Expected mode: 0755, Actual: {{ __ci_venv_dir.stat.mode | default('N/A') }}
+    success_msg: "Virtual environment ownership and permissions are correct!"
+
+- name: Check installed packages in venv
+  ansible.builtin.shell:
+    cmd: /opt/ansible-venv/bin/python -m pip list --format=json
+  register: __ci_venv_packages
+  changed_when: false
+
+- name: Verify base packages are installed in venv
+  vars:
+    __ci_venv_packages_list: "{{ __ci_venv_packages.stdout | from_json | map(attribute='name') | map('lower') | list }}"
+  ansible.builtin.assert:
+    that:
+      - "'requests' in __ci_venv_packages_list | default([])"
+      - "'pyyaml' in __ci_venv_packages_list | default([])"
+      - "'jinja2' in __ci_venv_packages_list | default([])"
+    fail_msg: |
+      Not all expected packages are installed in venv
+      - Expected packages: ['requests', 'pyyaml', 'jinja2']
+      - Actual packages found: {{ __ci_venv_packages_list | default([]) }}
+      - Missing: {{ ['requests', 'pyyaml', 'jinja2'] | difference(__ci_venv_packages_list | default([])) }}
+    success_msg: "All expected base packages are installed in venv!"
+
+- name: Verify explicitly pinned package versions
+  vars:
+    # Create lookup dict of installed packages {name: version} with lowercase keys
+    __ci_installed_versions: >-
+      {{
+        dict(__ci_venv_packages.stdout | from_json |
+             map(attribute='name') | map('lower') |
+             zip(__ci_venv_packages.stdout | from_json |
+                 map(attribute='version')))
+      }}
+    # Get all package specs from hostvars
+    __ci_all_package_specs: >-
+      {{
+        (system_venv_packages_base | default([]) +
+         system_venv_packages_extra | default([]))
+      }}
+    # Filter for packages with == version pins and parse into [name, version] pairs
+    __ci_pinned_packages: >-
+      {{
+        __ci_all_package_specs |
+        select('search', '==') |
+        map('split', '==') |
+        map('map', 'trim') |
+        list
+      }}
+  when: __ci_pinned_packages | length > 0
+  loop: "{{ __ci_pinned_packages }}"
+  loop_control:
+    loop_var: __ci_package_spec
+    label: "{{ __ci_package_spec[0] }}"
+  ansible.builtin.assert:
+    that:
+      - __ci_package_spec[0] | lower in __ci_installed_versions
+      - __ci_installed_versions[__ci_package_spec[0] | lower] == __ci_package_spec[1]
+    fail_msg: |
+      Package {{ __ci_package_spec[0] }} version mismatch!
+      - Expected version: {{ __ci_package_spec[1] }}
+      - Installed version: {{ __ci_installed_versions.get(__ci_package_spec[0] | lower, 'NOT INSTALLED') }}
+    success_msg: "Package {{ __ci_package_spec[0] }} has correct version {{ __ci_package_spec[1] }}"
+
+- name: Verify venv Python can import installed packages
+  ansible.builtin.command:
+    cmd: /opt/ansible-venv/bin/python -c "import requests, yaml, jinja2; print('SUCCESS')"
+  register: __ci_venv_import_test
+  changed_when: false
+  failed_when: __ci_venv_import_test.rc != 0 or __ci_venv_import_test.stdout.strip() != 'SUCCESS'
+
+- name: Verify removed packages are not in venv
+  vars:
+    __ci_venv_packages_list: "{{ __ci_venv_packages.stdout | from_json | map(attribute='name') | map('lower') | list }}"
+  ansible.builtin.assert:
+    that:
+      - "'pytz' not in __ci_venv_packages_list"
+    fail_msg: "Package 'pytz' should have been removed but is still present in venv!"
+    success_msg: "Removed package 'pytz' is correctly absent from venv!"

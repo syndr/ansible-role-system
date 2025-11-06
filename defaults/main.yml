@@ -405,11 +405,16 @@ system_venv_packages_base:
 # - Format is the same as system_venv_packages_base (list of pip package specs)
 system_venv_packages_extra: []
 
-# State for virtual environment packages (present, latest, absent, etc.)
+# State for virtual environment packages (present, latest)
 # - 'present': Install package if not already installed (default)
 # - 'latest': Install or upgrade to the latest version
-# - 'absent': Remove the package
 system_venv_packages_state: present
+
+# Python packages that should be removed from the virtual environment
+# - List of package names (version specs not needed for removal)
+# - Packages listed here will be uninstalled from the venv
+# - Useful for cleaning up unwanted dependencies or testing
+system_venv_packages_remove: []
 
 # Owner of the virtual environment directory
 system_venv_owner: root

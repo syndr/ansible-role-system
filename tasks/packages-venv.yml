@@ -117,6 +117,14 @@
     state: "{{ system_venv_packages_state }}"
     virtualenv: "{{ system_venv_path }}"
 
+- name: Remove packages from virtual environment
+  when: system_venv_packages_remove | length > 0
+  become: true
+  ansible.builtin.pip:
+    name: "{{ system_venv_packages_remove }}"
+    state: absent
+    virtualenv: "{{ system_venv_path }}"
+
 - name: Set runtime python interpreter
   when: system_venv_set_interpreter
   block:

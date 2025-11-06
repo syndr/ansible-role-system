@@ -25,7 +25,12 @@ platforms:
     systemd: True
     modify_image: False
     privileged: True
-    hostvars: {}
+    hostvars:
+      system_venv_package_state: latest  # Test with latest package state
+      system_venv_packages_extra:
+        - "boto3==1.40.55"
+        - docker
+        - pytz  # Will be removed in side_effect test
 
   - name: role-system-ubuntu2204
     type: docker
@@ -43,6 +48,7 @@ platforms:
       system_venv_packages_extra:
         - "boto3==1.40.55"
         - docker
+        - pytz  # Will be removed in side_effect test
 
   - name: role-system-ubuntu2404
     type: docker
