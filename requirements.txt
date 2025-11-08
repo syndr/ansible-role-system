@@ -1,6 +1,6 @@
 # Base python module requirements for Molecule tests and general project use
 
-ansible-core>=2.19
+ansible-core>=2.20.0
 ansible-lint
 requests>=2.32.3
 molecule>=25.7.0
