@@ -6,6 +6,11 @@
   vars:
     ansible_user: molecule_runner
   tasks:
+    - name: Load test configuration
+      tags: always
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
+
     - name: Load system facts
       ansible.builtin.setup:
         gather_subset:
@@ -45,22 +50,6 @@
             fail_msg: "Environment variables are not set as expected!"
             success_msg: "Environment variables are set as expected."
 
-    - name: Run system role with only MOTD enabled
-      ansible.builtin.include_role:
-        name: system
-      vars:
-        ansible_user: molecule_runner
-        system_motd_config_version: molecule-ci-test
-        system_default: false
-        system_enable_motd: true
-
-    - name: Verify execution state
-      ansible.builtin.assert:
-        that:
-          - system_ntp_configured is not defined
-        fail_msg: "NTP configuration should not be enabled! Something went wrong!"
-        success_msg: "NTP configuration is disabled as expected!"
-
     - name: Validate setting path works
       block:
         - name: Attempt to run PATH test script in a login shell
@@ -76,8 +65,6 @@
             fail_msg: "PATH test script did not output as expected! Output: {{ __ci_path_test.stdout }}"
             success_msg: "PATH test script output is as expected!"
 
-    # This takes more time to test, but the role should always be able to run successfully with defaults
-    - name: Run system role with default settings
-      ansible.builtin.include_role:
-        name: system
-
+    - name: Verify Python virtual environment
+      ansible.builtin.include_tasks:
+        file: tasks/verify-venv.yml

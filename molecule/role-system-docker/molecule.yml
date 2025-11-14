@@ -17,13 +17,21 @@ platforms:
     hostvars:
       system_packages_auto_update_category: default   # Fedora doesn't include errata in repos
       system_bash_disable_color_prompt: true  # Ensure color prompt logic works with this option
+      ci_custom_python_interpreter: /opt/ansible-venv/bin/python  # Test with venv interpreter
+
   - name: role-system-rocky9
     type: docker
     image: geerlingguy/docker-rockylinux9-ansible:latest
     systemd: True
     modify_image: False
     privileged: True
-    hostvars: {}
+    hostvars:
+      system_venv_package_state: latest  # Test with latest package state
+      system_venv_packages_extra:
+        - "boto3==1.40.55"
+        - docker
+        - pytz  # Will be removed in side_effect test
+
   - name: role-system-ubuntu2204
     type: docker
     image: geerlingguy/docker-ubuntu2204-ansible:latest
@@ -35,6 +43,13 @@ platforms:
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
       system_bash_prompt_symbols: {}      # Test with no prompt symbols
       system_bash_color_prompt_symbols: {} # Test with no prompt symbols
+      system_venv_set_interpreter: true  # Test with python interpreter override
+      system_venv_package_state: latest  # Test with latest package state
+      system_venv_packages_extra:
+        - "boto3==1.40.55"
+        - docker
+        - pytz  # Will be removed in side_effect test
+
   - name: role-system-ubuntu2404
     type: docker
     image: geerlingguy/docker-ubuntu2404-ansible:latest
@@ -44,6 +59,10 @@ platforms:
     hostvars:
       system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
       system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_enable_pip_packages: false   # Deprecated - using venv instead
+      system_enable_venv: true   # Use venv for Python packages (modern approach)
+      system_venv_packages_state: present  # Test with present package state
+
   - name: role-system-amazon2023
     type: docker
     image: geerlingguy/docker-amazonlinux2023-ansible:latest
@@ -59,9 +78,17 @@ platforms:
         grep: "grep --color=auto"
         fgrep: "fgrep --color=auto"
         egrep: "egrep --color=auto"
+      system_enable_pip_packages: false   # Deprecated - using venv instead
+      system_enable_venv: true   # Use venv for Python packages (modern approach)
 provisioner:
   name: ansible
   log: True
+  inventory:
+    group_vars:
+      molecule:
+        org: molecule
+        env: ci
+        system_enable_hostname: false   # Can't replace hostname file in docker containers
   playbooks:
     create: ../resources/create.yml
     prepare: ../resources/prepare.yml
@@ -70,12 +97,6 @@ provisioner:
     verify: ../resources/verify.yml
     cleanup: ../resources/cleanup.yml
     destroy: ../resources/destroy.yml
-  inventory:
-    group_vars:
-      all:
-        org: molecule
-        env: ci
-        system_enable_hostname: false   # Can't replace hostname file in docker containers
   config_options:
     defaults:
       gathering: explicit

@@ -42,6 +42,8 @@
   block:
     - name: Load automatic version information
       delegate_to: 127.0.0.1
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
       block:
         - name: Check whether source playbook filesystem is in a git repository
           ansible.builtin.command:

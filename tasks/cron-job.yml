@@ -37,7 +37,7 @@
           value: "{{ __system_cron_job_env_var_definition.value | default('') }}"
           state: "{{ 'present' if __system_cron_job_env_var_definition.value | default(false) is truthy else 'absent' }}"
       ansible.builtin.cron:
-        name: "{{ __system_cron_job.name }}"
+        name: "{{ __system_cron_job_env_var.key }}"
         cron_file: "{{ __system_cron_job_values.cron_file }}"
         value: "{{ __system_cron_job_env_var.value }}"
         user: "{{ __system_cron_job_values.user }}"
