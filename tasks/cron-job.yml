@@ -83,6 +83,7 @@
 
 - name: Cron job is absent
   when: __system_cron_job.state | default('present') == 'absent'
+  become: true
   ansible.builtin.cron:
     name: "{{ __system_cron_job.name }}"
     state: absent
