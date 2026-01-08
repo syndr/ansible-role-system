@@ -19,6 +19,7 @@
       register: system_stat_update_motd_d
 
     - name: Check for pam_motd
+      become: true
       ansible.builtin.command:
         cmd: grep -R "pam_motd" /etc/pam.d
       register: system_cmd_grep_pam_motd
