@@ -22,6 +22,7 @@
       register: __ci_authselect_stat
 
     - name: Check for pam_motd
+      become: true
       ansible.builtin.command:
         cmd: grep -R "pam_motd" /etc/pam.d
       register: __ci_cmd_grep_pam_motd
@@ -31,21 +32,21 @@
     - name: Add pam_motd lines
       when: __ci_cmd_grep_pam_motd.rc != 0
       block:
-        - name: System uses authselect
+        - name: System uses authselect (RHEL 8+)
           when: __ci_authselect_stat.stat.exists is true
           block:
-            - name: Look for authselect system profile
+            - name: Check for postlogin PAM file
               ansible.builtin.stat:
-                path: /etc/authselect/system-auth
-              register: __ci_authselect_system_auth_stat
+                path: /etc/pam.d/postlogin
+              register: __ci_postlogin_stat
 
-            - name: Enable pam_motd on login (system-auth)
+            - name: Enable pam_motd in postlogin
               become: true
+              when: __ci_postlogin_stat.stat.exists is true
               ansible.builtin.lineinfile:
-                path: /etc/authselect/system-auth
-                line: |
-                  session     optional      pam_motd.so
-              when: __ci_authselect_system_auth_stat.stat.exists is true
+                path: /etc/pam.d/postlogin
+                line: "session     optional      pam_motd.so motd=/run/motd.d motd_dir=/etc/motd.d"
+                insertafter: "^session"
 
         - name: System doesn't use authselect (probably)
           when: __ci_authselect_stat.stat.exists is false
@@ -64,6 +65,7 @@
                   session     optional      pam_motd.so
 
 - name: Check for pam_motd
+  become: true
   ansible.builtin.command:
     cmd: grep -R "pam_motd" /etc/pam.d
   register: system_cmd_grep_pam_motd
