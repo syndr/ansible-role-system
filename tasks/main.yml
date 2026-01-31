@@ -8,6 +8,13 @@
     #   see: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#understanding-variable-precedence
     ansible_python_interpreter: "{{ system_python_bootstrap_interpreter | default(omit) }}"
   block:
+    - name: Override ansible_python_interpreter for bootstrap
+      when:
+        - system_venv_set_interpreter
+        - system_python_bootstrap_interpreter | default('') is truthy
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: "{{ system_python_bootstrap_interpreter }}"
+
     - name: "DEBUG: Show bootstrap python interpreter configuration"
       ansible.builtin.debug:
         msg: |
