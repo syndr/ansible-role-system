@@ -1,0 +1,110 @@
+---
+# Install system package dependencies for Python virtual environments
+# Extracted from packages-venv.yml - these tasks use dnf/yum/apt modules
+# and need the package manager Python interpreter.
+
+- name: Check if venv and ensurepip modules are available
+  ansible.builtin.command:
+    cmd: "{{ system_venv_python_cmd }} -c 'import venv, ensurepip'"
+  register: __system_venv_check
+  changed_when: false
+  failed_when: false
+
+- name: Detect Python version for package installation
+  when:
+    - __system_venv_check.rc != 0
+    - ansible_os_family == "Debian"
+  ansible.builtin.command:
+    cmd: "{{ system_venv_python_cmd }} -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
+  register: __system_python_version
+  changed_when: false
+
+- name: Ensure python3-venv package is installed (shell fallback)
+  when:
+    - __system_venv_check.rc != 0
+    - __system_pkg_mgr_use_shell | default(false)
+  become: true
+  block:
+    - name: Install python3-virtualenv via dnf CLI - Rocky/RHEL 8+
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.command:
+        cmd: "dnf install -y python3-virtualenv"
+      register: __system_venv_install_shell
+      changed_when: "'Nothing to do' not in __system_venv_install_shell.stdout"
+
+    - name: Install python-virtualenv via yum CLI - CentOS/RHEL 7
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.command:
+        cmd: "yum install -y python-virtualenv"
+      register: __system_venv_install_shell
+      changed_when: "'Nothing to do' not in __system_venv_install_shell.stdout"
+
+    - name: Install python3-venv via apt-get CLI - Debian/Ubuntu
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Update apt cache for venv install
+          ansible.builtin.command:
+            cmd: apt-get update -qq
+          changed_when: false
+
+        - name: Install python3-venv package via apt-get CLI
+          ansible.builtin.command:
+            cmd: "apt-get install -y -qq python{{ __system_python_version.stdout | default('3') }}-venv"
+          register: __system_venv_install_shell
+          changed_when: "'0 newly installed' not in __system_venv_install_shell.stdout"
+
+- name: Ensure python3-venv package is installed
+  when:
+    - __system_venv_check.rc != 0
+    - not (__system_pkg_mgr_use_shell | default(false))
+  become: true
+  block:
+    - name: Install python3-venv (dnf) - Rocky/RHEL 8+
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.dnf:
+        name: python3-virtualenv
+        state: present
+
+    - name: Install python3-venv (yum) - CentOS/RHEL 7
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.yum:
+        name: python-virtualenv
+        state: present
+
+    - name: Install python3-venv (apt) - Debian/Ubuntu
+      when: ansible_os_family == "Debian"
+      ansible.builtin.apt:
+        name: "python{{ __system_python_version.stdout | default('3') }}-venv"
+        state: present
+        update_cache: true
+  rescue:
+    - name: Python venv installation failed
+      ansible.builtin.fail:
+        msg: |
+          Failed to install Python venv package on this system!
+
+          Distribution: {{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('Unknown') }}
+          OS Family: {{ ansible_os_family | default('Unknown') }}
+          Python Command: {{ system_venv_python_cmd | default('python3') }}
+
+          The 'venv' module is not available and package installation failed.
+          This could be due to:
+            - Missing package repositories (EPEL, etc.)
+            - Dependency conflicts
+            - Unsupported OS version
+
+          Possible solutions:
+            1. Ensure required repositories are enabled (e.g., EPEL for RHEL-based systems)
+            2. Install the venv package manually: '{{ system_venv_python_cmd | default('python3') }} -m ensurepip'
+            3. Disable venv management: 'system_enable_venv: false'
+            4. Use a different Python version: 'system_venv_python_cmd: python3.11'
+
+          For more information, see the system role README.

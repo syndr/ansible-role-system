@@ -1,0 +1,68 @@
+---
+# Verify that the package manager Python interpreter was discovered correctly
+
+- name: Assert __system_pkg_mgr_python is set
+  ansible.builtin.assert:
+    that:
+      - __system_pkg_mgr_python is defined
+      - __system_pkg_mgr_python | length > 0
+    fail_msg: "Package manager Python interpreter fact (__system_pkg_mgr_python) is not set!"
+    success_msg: "Package manager Python: {{ __system_pkg_mgr_python }}"
+
+- name: Verify discovered interpreter has package manager bindings
+  ansible.builtin.command:
+    cmd: >-
+      /bin/sh -c '
+      {{ __system_pkg_mgr_python }} -c "import dnf" 2>/dev/null ||
+      {{ __system_pkg_mgr_python }} -c "import libdnf5" 2>/dev/null ||
+      {{ __system_pkg_mgr_python }} -c "import yum" 2>/dev/null ||
+      {{ __system_pkg_mgr_python }} -c "import apt" 2>/dev/null
+      '
+  register: __verify_pkg_mgr_python
+  changed_when: false
+
+- name: Assert package manager bindings are importable
+  ansible.builtin.assert:
+    that:
+      - __verify_pkg_mgr_python.rc == 0
+    fail_msg: >-
+      Discovered interpreter '{{ __system_pkg_mgr_python }}' cannot import
+      any package manager module (dnf/libdnf5/yum/apt)!
+    success_msg: "Package manager Python '{{ __system_pkg_mgr_python }}' has valid bindings."
+
+- name: Assert __system_pkg_mgr_python_version is set
+  ansible.builtin.assert:
+    that:
+      - __system_pkg_mgr_python_version is defined
+      - __system_pkg_mgr_python_version | int > 0
+    fail_msg: "Package manager Python version fact (__system_pkg_mgr_python_version) is not set!"
+    success_msg: "Package manager Python version: {{ __system_pkg_mgr_python_version }}"
+
+- name: Assert __system_pkg_mgr_use_shell is set
+  ansible.builtin.assert:
+    that:
+      - __system_pkg_mgr_use_shell is defined
+      - __system_pkg_mgr_use_shell | type_debug == 'bool' or __system_pkg_mgr_use_shell in ['True', 'False', 'true', 'false']
+    fail_msg: "Shell fallback fact (__system_pkg_mgr_use_shell) is not set or not boolean!"
+    success_msg: "Shell fallback: {{ __system_pkg_mgr_use_shell }}"
+
+- name: Verify CLI tool is available when shell fallback is active
+  when: __system_pkg_mgr_use_shell | bool
+  block:
+    - name: Check dnf CLI availability
+      when: ansible_pkg_mgr == 'dnf'
+      ansible.builtin.command:
+        cmd: which dnf
+      changed_when: false
+
+    - name: Check yum CLI availability
+      when: ansible_pkg_mgr == 'yum'
+      ansible.builtin.command:
+        cmd: which yum
+      changed_when: false
+
+    - name: Check apt-get CLI availability
+      when: ansible_pkg_mgr == 'apt'
+      ansible.builtin.command:
+        cmd: which apt-get
+      changed_when: false

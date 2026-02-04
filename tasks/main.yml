@@ -1,12 +1,22 @@
 ---
 
+- name: Validate role configuration
+  tags: always
+  ansible.builtin.include_tasks: validate_conf.yml
+
+- name: Validate remote Python environment
+  tags: always
+  vars:
+    ansible_python_interpreter: "{{ system_python_bootstrap_interpreter | default('auto') }}"
+  ansible.builtin.include_tasks: validate_env.yml
+
 - name: Manage Python virtual environments
   tags: system-venv
   vars:
-    # Interpreter discovery would appear to honor the 'omit' magic value here 🤫
-    # Also note: variable precedence is of particular importance for this to work
+    # Use bootstrap interpreter if defined, otherwise fall back to Ansible's auto-discovery
+    # Note: variable precedence is of particular importance for this to work
     #   see: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#understanding-variable-precedence
-    ansible_python_interpreter: "{{ system_python_bootstrap_interpreter | default(omit) }}"
+    ansible_python_interpreter: "{{ system_python_bootstrap_interpreter | default('auto') }}"
   block:
     - name: Override ansible_python_interpreter for bootstrap
       when:
@@ -31,6 +41,16 @@
           - 'ansible_*_mb'
           - 'ansible_env'
           - 'ansible_pkg_mgr'
+
+    - name: Discover package manager Python interpreter
+      ansible.builtin.include_tasks: discover-pkg-mgr-python.yml
+
+    - name: Install venv system dependencies
+      when: system_enable_venv
+      ansible.builtin.include_tasks:
+        file: packages-venv-deps.yml
+      vars:
+        ansible_python_interpreter: "{{ __system_pkg_mgr_interpreter }}"
 
     - name: Configure Python virtual environment
       when: system_enable_venv
@@ -68,11 +88,20 @@
   tags: system-packages
   when: system_enable_packages
   block:
-    - name: Configure global package manager settings
-      ansible.builtin.include_tasks: package-manager.yml
+    - name: Load system package defaults
+      ansible.builtin.include_tasks: packages-load-defaults.yml
 
-    - name: Configure system package manager packages
-      ansible.builtin.include_tasks: packages.yml
+    - name: Configure global package manager settings
+      ansible.builtin.include_tasks:
+        file: package-manager.yml
+      vars:
+        ansible_python_interpreter: "{{ __system_pkg_mgr_interpreter }}"
+
+    - name: Install system packages
+      ansible.builtin.include_tasks:
+        file: packages.yml
+      vars:
+        ansible_python_interpreter: "{{ __system_pkg_mgr_interpreter }}"
 
 - name: Install pip3 packages
   tags: system-pip-packages
@@ -133,4 +162,3 @@
     - always
     - system-facts
   ansible.builtin.include_tasks: ansible-facts.yml
-

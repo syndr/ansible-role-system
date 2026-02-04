@@ -26,6 +26,7 @@ platforms:
     modify_image: False
     privileged: True
     hostvars:
+      system_venv_set_interpreter: true  # Test venv + pkg-mgr discovery on dnf-based system
       system_venv_package_state: latest  # Test with latest package state
       system_venv_packages_extra:
         - "boto3==1.40.55"

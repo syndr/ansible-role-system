@@ -69,3 +69,11 @@ __system_ansible_local_facts:
   version: "{{ __system_project_version }}"
   timestamp: "{{ ansible_date_time.epoch }}"
 
+# Python interpreter for package manager operations
+# - Shell fallback active: use bootstrap interpreter (compatible with ansible-core)
+# - Shell fallback inactive: use discovered pkg mgr Python (has C bindings for dnf/yum/apt)
+__system_pkg_mgr_interpreter: >-
+  {{ system_python_bootstrap_interpreter | default('auto')
+     if (__system_pkg_mgr_use_shell | default(false))
+     else (__system_pkg_mgr_python | default(system_python_bootstrap_interpreter | default('auto'))) }}
+

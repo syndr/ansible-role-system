@@ -1,71 +1,7 @@
 ---
 # Manage Python virtual environments for Ansible and system automation
-
-- name: Check if venv and ensurepip modules are available
-  ansible.builtin.command:
-    cmd: "{{ system_venv_python_cmd }} -c 'import venv, ensurepip'"
-  register: __system_venv_check
-  changed_when: false
-  failed_when: false
-
-- name: Detect Python version for package installation
-  when:
-    - __system_venv_check.rc != 0
-    - ansible_os_family == "Debian"
-  ansible.builtin.command:
-    cmd: "{{ system_venv_python_cmd }} -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
-  register: __system_python_version
-  changed_when: false
-
-- name: Ensure python3-venv package is installed
-  when: __system_venv_check.rc != 0
-  become: true
-  block:
-    - name: Install python3-venv (dnf) - Rocky/RHEL 8+
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version is version('8', '>=')
-      ansible.builtin.dnf:
-        name: python3-virtualenv
-        state: present
-
-    - name: Install python3-venv (yum) - CentOS/RHEL 7
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution_major_version is version('8', '<')
-      ansible.builtin.yum:
-        name: python-virtualenv
-        state: present
-
-    - name: Install python3-venv (apt) - Debian/Ubuntu
-      when: ansible_os_family == "Debian"
-      ansible.builtin.apt:
-        name: "python{{ __system_python_version.stdout | default('3') }}-venv"
-        state: present
-        update_cache: true
-  rescue:
-    - name: Python venv installation failed
-      ansible.builtin.fail:
-        msg: |
-          Failed to install Python venv package on this system!
-
-          Distribution: {{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('Unknown') }}
-          OS Family: {{ ansible_os_family | default('Unknown') }}
-          Python Command: {{ system_venv_python_cmd | default('python3') }}
-
-          The 'venv' module is not available and package installation failed.
-          This could be due to:
-            - Missing package repositories (EPEL, etc.)
-            - Dependency conflicts
-            - Unsupported OS version
-
-          Possible solutions:
-            1. Ensure required repositories are enabled (e.g., EPEL for RHEL-based systems)
-            2. Install the venv package manually: '{{ system_venv_python_cmd | default('python3') }} -m ensurepip'
-            3. Disable venv management: 'system_enable_venv: false'
-            4. Use a different Python version: 'system_venv_python_cmd: python3.11'
-
-          For more information, see the system role README.
+# NOTE: System package dependencies (dnf/yum/apt) are handled separately
+# in packages-venv-deps.yml with the package manager Python interpreter.
 
 - name: Check if venv already exists
   ansible.builtin.stat:
@@ -89,6 +25,7 @@
     state: "{{ __system_pip_package_state }}"
     virtualenv: "{{ system_venv_path }}"
     virtualenv_command: "{{ system_venv_python_cmd }} -m venv"
+    virtualenv_site_packages: "{{ system_venv_site_packages }}"
 
 - name: Set virtual environment ownership
   when: not __system_venv_exists.stat.exists
@@ -100,6 +37,23 @@
     mode: "{{ system_venv_mode }}"
     state: directory
     recurse: true
+
+- name: Ensure system site-packages access in existing venv
+  when:
+    - __system_venv_exists.stat.exists
+    - system_venv_site_packages
+  become: true
+  ansible.builtin.lineinfile:
+    path: "{{ system_venv_path }}/pyvenv.cfg"
+    regexp: '^include-system-site-packages'
+    line: 'include-system-site-packages = true'
+
+- name: Ensure packaging library is available in venv (required by ansible.builtin.pip)
+  become: true
+  ansible.builtin.command:
+    cmd: "{{ system_venv_path }}/bin/pip install packaging"
+  register: __system_venv_packaging
+  changed_when: "'Successfully installed' in __system_venv_packaging.stdout"
 
 - name: Install base packages in virtual environment
   when: system_venv_packages_base | length > 0

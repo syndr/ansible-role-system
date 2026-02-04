@@ -1,0 +1,59 @@
+---
+# Validate remote Python environment
+# Uses raw module exclusively — remote Python may be too old for ansible modules
+
+- name: Compute minimum Python version threshold
+  ansible.builtin.set_fact:
+    __system_min_python_numeric: >-
+      {{ (system_min_python_version.split('.')[0] | int) * 100
+       + (system_min_python_version.split('.')[1] | int) }}
+
+- name: Probe bootstrap Python interpreter version
+  when: system_python_bootstrap_interpreter | default('') is truthy
+  ansible.builtin.raw: >-
+    {{ system_python_bootstrap_interpreter }} -c
+    "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)"
+  register: __system_validate_bootstrap_ver
+  changed_when: false
+  failed_when: false
+
+- name: Probe system Python interpreter version
+  ansible.builtin.raw: >-
+    /usr/bin/python3 -c
+    "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)"
+  register: __system_validate_system_ver
+  changed_when: false
+  failed_when: false
+
+- name: Evaluate Python environment compatibility
+  vars:
+    __bootstrap_ver: "{{ __system_validate_bootstrap_ver.stdout | default('0') | trim | int }}"
+    __system_ver: "{{ __system_validate_system_ver.stdout | default('0') | trim | int }}"
+    __min_ver: "{{ __system_min_python_numeric | int }}"
+  block:
+    - name: Set environment degraded flag
+      ansible.builtin.set_fact:
+        __system_env_python_degraded: >-
+          {{ (__bootstrap_ver | int < __min_ver | int) and
+             (__system_ver | int < __min_ver | int) }}
+
+    - name: Python environment status
+      ansible.builtin.debug:
+        msg: |
+          Python environment validation:
+            Bootstrap interpreter ({{ system_python_bootstrap_interpreter | default('not configured') }}): {{ __bootstrap_ver }}
+            System /usr/bin/python3: {{ __system_ver }}
+            Minimum required: {{ __min_ver }} ({{ system_min_python_version }})
+            Degraded mode: {{ __system_env_python_degraded }}
+
+    - name: Assert at least one compatible Python interpreter exists
+      when: system_pkg_mgr_shell_fallback | string | lower in ['false', 'never']
+      ansible.builtin.assert:
+        that:
+          - not (__system_env_python_degraded | bool)
+        fail_msg: >-
+          No Python interpreter meets minimum version {{ system_min_python_version }}
+          and shell fallback is disabled. Bootstrap: {{ __bootstrap_ver }},
+          System: {{ __system_ver }}.
+          Set system_pkg_mgr_shell_fallback to 'auto' or provide a compatible interpreter.
+        success_msg: "Compatible Python interpreter available."

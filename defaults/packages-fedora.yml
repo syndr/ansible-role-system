@@ -5,6 +5,7 @@ system_packages_base:
   - git
   - jq
   - nc
+  - python3-libdnf5
   - python3-pip
   - rsync
   - screen

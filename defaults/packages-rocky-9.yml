@@ -7,6 +7,7 @@ system_packages_base:
   - mlocate
   - nc
   - python3-pip
+  - python3-dnf
   - rsync
   - tmux
   - vim-enhanced

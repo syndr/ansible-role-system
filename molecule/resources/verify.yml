@@ -17,6 +17,7 @@
           - "!all"
           - "!min"
           - distribution
+          - pkg_mgr
 
     - name: Add compatibility options for legacy OS
       when: >-
@@ -87,3 +88,11 @@
     - name: Verify Python virtual environment
       ansible.builtin.include_tasks:
         file: tasks/verify-venv.yml
+
+    - name: Run package manager Python discovery
+      ansible.builtin.include_tasks:
+        file: "{{ playbook_dir }}/../../tasks/discover-pkg-mgr-python.yml"
+
+    - name: Verify package manager Python discovery
+      ansible.builtin.include_tasks:
+        file: tasks/verify-pkg-mgr-python.yml
