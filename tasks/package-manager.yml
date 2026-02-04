@@ -43,13 +43,15 @@
   block:
     - name: Configure automatic package updates (dnf)
       when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '>=')
-      ansible.builtin.include_tasks: packages-update-dnf.yml
+      ansible.builtin.include_tasks:
+        file: packages-update-dnf.yml
 
     - name: Configure automatic package updates (yum)
       when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '<')
-      ansible.builtin.include_tasks: packages-update-yum.yml
+      ansible.builtin.include_tasks:
+        file: packages-update-yum.yml
 
     - name: Configure automatic package updates (apt)
       when: ansible_os_family == "Debian"
-      ansible.builtin.include_tasks: packages-update-apt.yml
-
+      ansible.builtin.include_tasks:
+        file: packages-update-apt.yml

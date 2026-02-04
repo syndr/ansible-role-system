@@ -405,6 +405,11 @@ system_venv_packages_base:
 # - Format is the same as system_venv_packages_base (list of pip package specs)
 system_venv_packages_extra: []
 
+# Inherit system site-packages in the virtual environment
+# - Required for modules that depend on system-only Python bindings (dnf, yum, apt, selinux, etc.)
+# - When true, the venv can access packages installed at the system level
+system_venv_site_packages: true
+
 # State for virtual environment packages (present, latest)
 # - 'present': Install package if not already installed (default)
 # - 'latest': Install or upgrade to the latest version
@@ -439,6 +444,25 @@ system_venv_python_cmd: python3
 # - Set to empty string to disable bootstrap override (use inventory interpreter)
 # - Typically set to system Python path: /usr/bin/python3
 system_python_bootstrap_interpreter: /usr/bin/python3
+
+# Python interpreter override for package manager operations (dnf/yum/apt)
+# - Auto-discovered at runtime by probing system interpreters
+# - Set to override auto-discovery (e.g., /usr/libexec/platform-python)
+system_pkg_mgr_python_interpreter: ""
+
+# Minimum Python version required by ansible-core on managed nodes
+# - Used to detect when shell fallback is needed for package manager operations
+# - Reference: ansible/module_utils/basic.py _PY_MIN
+# - Default matches ansible-core 2.19+ requirement (Python 3.8)
+system_min_python_version: "3.8"
+
+# Shell fallback for package manager operations when discovered Python is too
+# old for ansible-core (e.g., Python 3.6 on RHEL 8 with ansible-core 2.19+)
+# Values: auto (detect), true/always (force), false/never (disable)
+# - 'auto': Falls back to shell commands when pkg-mgr Python < system_min_python_version
+# - 'always': Always use shell commands for package operations
+# - 'never': Never use shell fallback; fail if interpreter is incompatible
+system_pkg_mgr_shell_fallback: auto
 
 # }}}
 

@@ -1,58 +1,46 @@
 ---
 # Install applications from the system package manager
+# NOTE: ansible_python_interpreter is overridden via include params in main.yml
+# to use the discovered package manager Python (__system_pkg_mgr_python)
 
-- name: Load default packages for OS
-  when: system_packages_base == 'DEFAULT'
+- name: Install system packages (shell fallback)
+  when:
+    - __system_pkg_mgr_use_shell | default(false)
+    - system_packages_base is truthy or system_packages_extra is truthy
+  become: true
   block:
-    - name: Check for OS version-specific packages list
-      delegate_to: 127.0.0.1
-      vars:
-        ansible_python_interpreter: "{{ ansible_playbook_python }}"
-      ansible.builtin.stat:
-        path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-      register: __ac_packages_os_ver_specific_stat
+    - name: Packages are installed via dnf CLI
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.command:
+        cmd: "dnf install -y {{ (system_packages_base + system_packages_extra) | join(' ') }}"
+      register: __system_pkg_install_shell
+      changed_when: "'Nothing to do' not in __system_pkg_install_shell.stdout"
 
-    - name: Load OS version-specific packages list
-      when: __ac_packages_os_ver_specific_stat.stat.exists
-      ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml
+    - name: Packages are installed via yum CLI
+      when: ansible_os_family == "RedHat" and ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.command:
+        cmd: "yum install -y {{ (system_packages_base + system_packages_extra) | join(' ') }}"
+      register: __system_pkg_install_shell
+      changed_when: "'Nothing to do' not in __system_pkg_install_shell.stdout"
 
-    - name: Check for OS distribution packages list
-      delegate_to: 127.0.0.1
-      vars:
-        ansible_python_interpreter: "{{ ansible_playbook_python }}"
-      ansible.builtin.stat:
-        path: "{{ role_path }}/defaults/packages-{{ ansible_distribution | lower }}.yml"
-      register: __ac_packages_os_specific_stat
+    - name: Packages are installed via apt CLI
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Update apt cache
+          ansible.builtin.command:
+            cmd: apt-get update -qq
+          changed_when: false
 
-    - name: Load OS default packages list
-      when:
-        - __ac_packages_os_specific_stat.stat.exists
-        - not __ac_packages_os_ver_specific_stat.stat.exists
-      ansible.builtin.include_vars: defaults/packages-{{ ansible_distribution | lower }}.yml
-
-    - name: Validate packages list
-      ansible.builtin.assert:
-        that:
-          - system_packages_base is defined
-          - system_packages_base is mapping
-          - system_packages_base is not empty
-  rescue:
-    - name: Unable to load OS-specific default packages list
-      ansible.builtin.fail:
-        msg: You may need to create the defaults/packages-distro.yml file for this OS!
-
-- name: 🐜 Base packages are
-  ansible.builtin.debug:
-    var: system_packages_base
-    verbosity: 1
-
-- name: 🐜 Extra packages are
-  ansible.builtin.debug:
-    var: system_packages_extra
-    verbosity: 1
+        - name: Install packages via apt-get CLI
+          ansible.builtin.command:
+            cmd: "apt-get install -y -qq {{ (system_packages_base + system_packages_extra) | join(' ') }}"
+          register: __system_pkg_install_shell
+          changed_when: "'0 newly installed' not in __system_pkg_install_shell.stdout"
 
 - name: Install system packages
-  when: system_packages_base is truthy or system_packages_extra is truthy
+  when:
+    - not (__system_pkg_mgr_use_shell | default(false))
+    - system_packages_base is truthy or system_packages_extra is truthy
   become: true
   block:
     - name: Packages are installed (dnf)
@@ -75,4 +63,3 @@
         name: "{{ system_packages_base + system_packages_extra }}"
         state: present
         update_cache: true
-

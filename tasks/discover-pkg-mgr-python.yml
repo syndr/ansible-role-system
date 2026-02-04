@@ -1,0 +1,146 @@
+---
+# Discover the system Python interpreter with package manager bindings (dnf/yum/apt)
+#
+# When ansible_python_interpreter points to a venv Python, package manager modules
+# (dnf, yum, apt) fail because the C bindings are compiled against the platform Python.
+# This task probes system interpreters to find one with working package manager bindings.
+#
+# Sets fact: __system_pkg_mgr_python
+# Override: system_pkg_mgr_python_interpreter (skips auto-discovery)
+
+- name: Use explicit package manager Python interpreter
+  when: system_pkg_mgr_python_interpreter | default('') is truthy
+  ansible.builtin.set_fact:
+    __system_pkg_mgr_python: "{{ system_pkg_mgr_python_interpreter }}"
+
+- name: Auto-discover package manager Python interpreter
+  when: system_pkg_mgr_python_interpreter | default('') is falsy
+  block:
+    - name: Probe system interpreters for package manager bindings
+      ansible.builtin.command:
+        cmd: >-
+          /bin/sh -c '
+          for py in /usr/libexec/platform-python /usr/bin/python3 /usr/bin/python; do
+            if [ -x "$py" ]; then
+              if "$py" -c "import dnf" 2>/dev/null ||
+                 "$py" -c "import libdnf5" 2>/dev/null ||
+                 "$py" -c "import yum" 2>/dev/null ||
+                 "$py" -c "import apt" 2>/dev/null; then
+                echo "$py";
+                exit 0;
+              fi;
+            fi;
+          done;
+          exit 1
+          '
+      register: __system_pkg_mgr_python_probe
+      changed_when: false
+
+    - name: Set package manager Python interpreter fact
+      ansible.builtin.set_fact:
+        __system_pkg_mgr_python: "{{ __system_pkg_mgr_python_probe.stdout | trim }}"
+
+  rescue:
+    - name: Collect diagnostic information for failed probe
+      ansible.builtin.command:
+        cmd: >-
+          /bin/sh -c '
+          echo "=== Package manager Python discovery failed ===";
+          echo "OS: $(cat /etc/os-release | grep ^PRETTY_NAME= | cut -d= -f2)";
+          echo "ansible_pkg_mgr: {{ ansible_pkg_mgr | default('unknown') }}";
+          echo "";
+          echo "--- Interpreter scan ---";
+          for py in /usr/libexec/platform-python /usr/bin/python3 /usr/bin/python; do
+            if [ -x "$py" ]; then
+              ver=$("$py" -c "import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")" 2>/dev/null || echo "unknown");
+              echo "  $py (Python $ver):";
+              for mod in dnf libdnf5 yum apt; do
+                "$py" -c "import $mod" 2>/dev/null && echo "    $mod: OK" || echo "    $mod: MISSING";
+              done;
+            else
+              echo "  $py: NOT FOUND";
+            fi;
+          done;
+          echo "";
+          echo "--- Installed pkg-mgr Python packages ---";
+          rpm -qa 2>/dev/null | grep -iE "python3?-(dnf|libdnf|yum)" || dpkg -l 2>/dev/null | grep -iE "python3?-(apt|dnf)" || echo "  (unable to query packages)";
+          '
+      register: __system_pkg_mgr_diag
+      changed_when: false
+      failed_when: false
+
+    - name: Package manager Python discovery failed
+      ansible.builtin.fail:
+        msg: |
+          No system Python interpreter with package manager bindings was found!
+
+          {{ __system_pkg_mgr_diag.stdout | default('(diagnostics unavailable)') }}
+
+          Remediation options:
+            1. Install the package manager Python bindings:
+               - DNF (RHEL/Rocky/Alma): dnf install python3-dnf
+               - DNF5 (Fedora 42+):     dnf install python3-libdnf5
+               - APT (Debian/Ubuntu):    apt install python3-apt
+            2. Set 'system_pkg_mgr_python_interpreter' to the correct path manually
+            3. Set 'system_pkg_mgr_shell_fallback: always' to bypass module-based package management
+
+- name: "DEBUG: Package manager Python interpreter"
+  ansible.builtin.debug:
+    msg: "Discovered package manager Python: {{ __system_pkg_mgr_python }}"
+    verbosity: 1
+
+# Probe discovered interpreter version and evaluate shell fallback need
+- name: Probe package manager Python version
+  ansible.builtin.command:
+    cmd: >-
+      {{ __system_pkg_mgr_python }} -c
+      "import sys; print(sys.version_info.major * 100 + sys.version_info.minor)"
+  register: __system_pkg_mgr_python_version_probe
+  changed_when: false
+
+- name: Set package manager Python version fact
+  ansible.builtin.set_fact:
+    __system_pkg_mgr_python_version: "{{ __system_pkg_mgr_python_version_probe.stdout | trim | int }}"
+
+- name: Evaluate shell fallback for package manager operations
+  vars:
+    __fallback_setting: "{{ system_pkg_mgr_shell_fallback | default('auto') | string | lower }}"
+    __min_python_numeric: >-
+      {{ ((system_min_python_version | default('3.8')).split('.')[0] | int) * 100
+       + ((system_min_python_version | default('3.8')).split('.')[1] | int) }}
+  block:
+    - name: Shell fallback forced on
+      when: __fallback_setting in ['true', 'always']
+      ansible.builtin.set_fact:
+        __system_pkg_mgr_use_shell: true
+
+    - name: Shell fallback forced off
+      when: __fallback_setting in ['false', 'never']
+      block:
+        - name: Assert interpreter version is compatible when shell fallback disabled
+          ansible.builtin.assert:
+            that:
+              - __system_pkg_mgr_python_version | int >= __min_python_numeric | int
+            fail_msg: >-
+              Package manager Python {{ __system_pkg_mgr_python }} is version
+              {{ __system_pkg_mgr_python_version }} (< {{ system_min_python_version }}) and shell fallback
+              is disabled (system_pkg_mgr_shell_fallback={{ system_pkg_mgr_shell_fallback }}).
+              ansible-core requires Python >= {{ system_min_python_version }} for module execution.
+            success_msg: "Interpreter version {{ __system_pkg_mgr_python_version }} is compatible."
+
+        - name: Set shell fallback disabled
+          ansible.builtin.set_fact:
+            __system_pkg_mgr_use_shell: false
+
+    - name: Shell fallback auto-detect
+      when: __fallback_setting == 'auto'
+      ansible.builtin.set_fact:
+        __system_pkg_mgr_use_shell: "{{ __system_pkg_mgr_python_version | int < __min_python_numeric | int }}"
+
+- name: "DEBUG: Shell fallback decision"
+  ansible.builtin.debug:
+    msg: >-
+      Package manager Python version: {{ __system_pkg_mgr_python_version }}
+      | Shell fallback: {{ __system_pkg_mgr_use_shell }}
+      (setting: {{ system_pkg_mgr_shell_fallback | default('auto') }})
+    verbosity: 1
