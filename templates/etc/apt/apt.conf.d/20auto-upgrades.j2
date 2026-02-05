@@ -1,0 +1,18 @@
+// {{ ansible_managed }}
+// APT periodic update configuration
+
+// Update package lists daily
+APT::Periodic::Update-Package-Lists "1";
+
+// Download upgradeable packages daily
+APT::Periodic::Download-Upgradeable-Packages "1";
+
+// Run unattended-upgrade daily
+APT::Periodic::Unattended-Upgrade "1";
+
+// Clean up downloaded packages weekly
+APT::Periodic::AutocleanInterval "7";
+
+// Random sleep before operations (in seconds)
+// Prevents all hosts from hitting mirrors simultaneously
+APT::Periodic::RandomSleep "{{ system_packages_auto_update_random_wait * 60 }}";

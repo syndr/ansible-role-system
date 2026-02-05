@@ -77,3 +77,40 @@
     - name: Verify package manager Python discovery
       ansible.builtin.include_tasks:
         file: tasks/verify-pkg-mgr-python.yml
+
+    - name: Verify APT auto-update configuration
+      when:
+        - ansible_os_family == "Debian"
+        - system_enable_packages_auto_update | default(false)
+      become: true
+      block:
+        - name: Check unattended-upgrades package is installed
+          ansible.builtin.command:
+            cmd: dpkg -l unattended-upgrades
+          changed_when: false
+          register: __ci_apt_autoupdate_pkg
+
+        - name: Check unattended-upgrades config exists
+          ansible.builtin.stat:
+            path: /etc/apt/apt.conf.d/50unattended-upgrades
+          register: __ci_apt_unattended_cfg
+
+        - name: Check auto-upgrades config exists
+          ansible.builtin.stat:
+            path: /etc/apt/apt.conf.d/20auto-upgrades
+          register: __ci_apt_auto_cfg
+
+        - name: Check unattended-upgrades service status
+          ansible.builtin.systemd:
+            name: unattended-upgrades
+          register: __ci_apt_autoupdate_svc
+
+        - name: Validate APT auto-update configuration
+          ansible.builtin.assert:
+            that:
+              - __ci_apt_autoupdate_pkg.rc == 0
+              - __ci_apt_unattended_cfg.stat.exists
+              - __ci_apt_auto_cfg.stat.exists
+              - __ci_apt_autoupdate_svc.status.UnitFileState == 'enabled'
+            fail_msg: "APT auto-update not configured correctly!"
+            success_msg: "APT auto-update configured correctly."

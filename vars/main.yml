@@ -20,6 +20,8 @@ __system_packages_errata_distros:
   - RedHat
   - Rocky
   - Amazon
+  - Ubuntu
+  - Debian
 
 # Set distributions for which we manage yum.conf and dnf.conf (For the templates)
 __system_pkgmgr_supported_distributions:
