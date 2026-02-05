@@ -1,0 +1,49 @@
+// {{ ansible_managed }}
+// Unattended-Upgrades configuration for {{ ansible_distribution }} {{ ansible_distribution_version }}
+//
+// For more details see:
+// https://wiki.debian.org/UnattendedUpgrades
+
+// Allowed origins for automatic updates
+Unattended-Upgrade::Origins-Pattern {
+{% if system_packages_auto_update_category == 'security' %}
+{% if ansible_distribution == 'Ubuntu' %}
+        // Ubuntu security updates only
+        "origin=Ubuntu,codename=${distro_codename}-security,label=Ubuntu";
+{% elif ansible_distribution == 'Debian' %}
+        // Debian security updates only
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+{% endif %}
+{% else %}
+{% if ansible_distribution == 'Ubuntu' %}
+        // Ubuntu security updates
+        "origin=Ubuntu,codename=${distro_codename}-security,label=Ubuntu";
+        // Ubuntu recommended updates
+        "origin=Ubuntu,codename=${distro_codename}-updates,label=Ubuntu";
+{% elif ansible_distribution == 'Debian' %}
+        // Debian security updates
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+        // Debian updates
+        "origin=Debian,codename=${distro_codename},label=Debian";
+{% endif %}
+{% endif %}
+};
+
+// Packages to exclude from automatic updates
+Unattended-Upgrade::Package-Blacklist {
+{% for pkg in system_packages_auto_update_exclusions %}
+        "{{ pkg }}";
+{% endfor %}
+};
+
+// Do not automatically reboot after updates
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Remove unused kernel packages after upgrades
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+
+// Remove unused dependencies after upgrades
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Enable syslog logging
+Unattended-Upgrade::SyslogEnable "true";

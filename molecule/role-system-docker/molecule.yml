@@ -40,8 +40,7 @@ platforms:
     modify_image: False
     privileged: True
     hostvars:
-      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
-      system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_enable_packages_auto_update: true
       system_bash_prompt_symbols: {}      # Test with no prompt symbols
       system_bash_color_prompt_symbols: {} # Test with no prompt symbols
       system_venv_set_interpreter: true  # Test with python interpreter override
@@ -58,11 +57,20 @@ platforms:
     modify_image: False
     privileged: True
     hostvars:
-      system_packages_auto_update_category: default   # Ubuntu doesn't include errata in repos
-      system_enable_packages_auto_update: false   # Ubuntu is not yet supported
+      system_enable_packages_auto_update: true
       system_enable_pip_packages: false   # Deprecated - using venv instead
       system_enable_venv: true   # Use venv for Python packages (modern approach)
       system_venv_packages_state: present  # Test with present package state
+
+  - name: role-system-debian13
+    type: docker
+    image: geerlingguy/docker-debian13-ansible:latest
+    systemd: True
+    modify_image: False
+    privileged: True
+    hostvars:
+      system_enable_packages_auto_update: true
+      system_packages_auto_update_category: security  # Test security-only updates on Debian
 
   - name: role-system-amazon2023
     type: docker
