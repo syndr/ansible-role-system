@@ -39,6 +39,9 @@ __system_compat_services_list:
   ubuntu:
     cron: cron
     ssh: ssh
+  debian:
+    cron: cron
+    ssh: ssh
   default:
     cron: crond
     ssh: sshd
