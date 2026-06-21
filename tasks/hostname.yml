@@ -12,6 +12,12 @@
 
 - name: Set system hostname
   become: true
+  vars:
+    # Normalize to lowercase: DNS hostnames are case-insensitive, and uppercase
+    # names break tooling that expects a canonical lowercase node name (e.g.
+    # Proxmox VE node identity). There is no valid use case for an uppercase
+    # hostname, so we always cast it down.
+    __system_hostname: "{{ system_hostname | lower }}"
   ansible.builtin.hostname:
-    name: "{{ system_hostname }}"
+    name: "{{ __system_hostname }}"
     use: systemd
