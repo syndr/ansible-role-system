@@ -2,6 +2,7 @@
 # Configure low-level system services
 
 - name: Configure NTP service
+  when: system_enable_ntp
   ansible.builtin.include_tasks: "{{ role_path }}/tasks/services/ntp.yml"
 
 - name: Configure SSH service
