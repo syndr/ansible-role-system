@@ -8,6 +8,8 @@
     - name: Bash | OS-specific profile template exists
       delegate_to: 127.0.0.1
       become: false
+      vars:
+        ansible_python_interpreter: "{{ ansible_playbook_python }}"
       ansible.builtin.stat:
         path: "{{ role_path }}/templates/etc/profile.{{ ansible_distribution_file_variety | lower }}.j2"
       register: __system_profile_templatefile_stat

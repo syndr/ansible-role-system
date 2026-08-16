@@ -21,77 +21,36 @@
   hosts: molecule
   vars:
     ansible_user: molecule_runner
+    ansible_python_interpreter: "{{ ci_custom_python_interpreter | default(omit) }}"
   tasks:
-    - name: Load system facts
+    - name: Load test configuration
       tags: always
-      ansible.builtin.setup:
-        gather_subset:
-          - "!all"
-          - "!min"
-          - distribution
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vars/main.yml"
 
-    - name: Add compatibility options for legacy OS
-      tags: always
-      when: >-
-        ansible_distribution == 'Amazon' and ansible_distribution_major_version == '2' or
-        ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
-      ansible.builtin.set_fact:
-        ## This is set here because AL2 doesn't support the default values which use the Include directive
-        system_sshd_config_defaults:
-          AuthorizedKeysFile: .ssh/authorized_keys
-        ansible_python_interpreter: /usr/local/bin/python3.10
+    - name: For non-bootstrap hosts
+      when: ci_custom_python_interpreter is not defined
+      block:
+        - name: Load system facts
+          tags: always
+          ansible.builtin.setup:
+            gather_subset:
+              - "!all"
+              - "!min"
+              - distribution
+
+        - name: Add compatibility options for legacy OS
+          tags: always
+          when: >-
+            ansible_distribution == 'Amazon' and ansible_distribution_major_version == '2' or
+            ansible_distribution == 'CentOS' and ansible_distribution_major_version == '7'
+          ansible.builtin.set_fact:
+            ## This is set here because AL2 doesn't support the default values which use the Include directive
+            system_sshd_config_defaults:
+              AuthorizedKeysFile: .ssh/authorized_keys
+            ansible_python_interpreter: /usr/local/bin/python3.10
 
     - name: Load system role
       tags: always
-      vars:
-        system_cron_jobs:
-          - name: "absolute_scheduling_test"
-            job: "echo 'Hello, World!'"
-            minute: "*/1"
-            hour: "*"
-            day: "*"
-            month: "*"
-            user: "root"
-          - name: "absolute_scheduling_alternate_user_test"
-            job: "echo 'Hello, World!'"
-            minute: "*/1"
-            hour: "*"
-            day: "*"
-            month: "*"
-            user: "{{ ansible_user }}"
-          - name: "relative_scheduling_test"
-            job: "echo 'Hello, World!'"
-            minute: "*/1"
-            hour: "*"
-            weekday: 3
-            user: "root"
-          - name: "special_scheduling_test"
-            job: "echo 'Hello, World!'"
-            special_time: "hourly"
-            user: "root"
-          - name: "environment_variable_test"
-            job: "echo 'Hello, World!'"
-            minute: "*/1"
-            hour: "*"
-            day: "*"
-            month: "*"
-            user: "root"
-            env:
-              TEST_ENV_VAR: "test_value"
-        system_alternatives:
-          - name: test_alternative
-            link: /usr/bin/smash
-            path: /usr/bin/bash
-        system_path_append:
-          - /opt/bin
-        system_motd_status_data:
-          Status: "\\033[2;34mMOLECULE CI \\033[1;34mTEST INSTANCE\\033[0m"
-        system_bash_force_color_prompt: true
-        system_bashrc_overwrite_existing: true
-        system_user_environment_vars:
-          root:
-          molecule_runner:
-            I_AM_ROBOT: "true"
       ansible.builtin.include_role:
         name: system
-

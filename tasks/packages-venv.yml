@@ -1,0 +1,140 @@
+---
+# Manage Python virtual environments for Ansible and system automation
+
+- name: Check if venv and ensurepip modules are available
+  ansible.builtin.command:
+    cmd: "{{ system_venv_python_cmd }} -c 'import venv, ensurepip'"
+  register: __system_venv_check
+  changed_when: false
+  failed_when: false
+
+- name: Detect Python version for package installation
+  when:
+    - __system_venv_check.rc != 0
+    - ansible_os_family == "Debian"
+  ansible.builtin.command:
+    cmd: "{{ system_venv_python_cmd }} -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
+  register: __system_python_version
+  changed_when: false
+
+- name: Ensure python3-venv package is installed
+  when: __system_venv_check.rc != 0
+  become: true
+  block:
+    - name: Install python3-venv (dnf) - Rocky/RHEL 8+
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '>=')
+      ansible.builtin.dnf:
+        name: python3-virtualenv
+        state: present
+
+    - name: Install python3-venv (yum) - CentOS/RHEL 7
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution_major_version is version('8', '<')
+      ansible.builtin.yum:
+        name: python-virtualenv
+        state: present
+
+    - name: Install python3-venv (apt) - Debian/Ubuntu
+      when: ansible_os_family == "Debian"
+      ansible.builtin.apt:
+        name: "python{{ __system_python_version.stdout | default('3') }}-venv"
+        state: present
+        update_cache: true
+  rescue:
+    - name: Python venv installation failed
+      ansible.builtin.fail:
+        msg: |
+          Failed to install Python venv package on this system!
+
+          Distribution: {{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('Unknown') }}
+          OS Family: {{ ansible_os_family | default('Unknown') }}
+          Python Command: {{ system_venv_python_cmd | default('python3') }}
+
+          The 'venv' module is not available and package installation failed.
+          This could be due to:
+            - Missing package repositories (EPEL, etc.)
+            - Dependency conflicts
+            - Unsupported OS version
+
+          Possible solutions:
+            1. Ensure required repositories are enabled (e.g., EPEL for RHEL-based systems)
+            2. Install the venv package manually: '{{ system_venv_python_cmd | default('python3') }} -m ensurepip'
+            3. Disable venv management: 'system_enable_venv: false'
+            4. Use a different Python version: 'system_venv_python_cmd: python3.11'
+
+          For more information, see the system role README.
+
+- name: Check if venv already exists
+  ansible.builtin.stat:
+    path: "{{ system_venv_path }}"
+  register: __system_venv_exists
+
+- name: Create Python virtual environment
+  when: not __system_venv_exists.stat.exists
+  become: true
+  vars:
+    # Pip is needed for managing packages; ensure it's installed
+    __system_pip_package_state: >-
+      {{
+        system_venv_packages_state
+        if system_venv_packages_state in ['present', 'latest']
+        else
+        'present'
+      }}
+  ansible.builtin.pip:
+    name: pip
+    state: "{{ __system_pip_package_state }}"
+    virtualenv: "{{ system_venv_path }}"
+    virtualenv_command: "{{ system_venv_python_cmd }} -m venv"
+
+- name: Set virtual environment ownership
+  when: not __system_venv_exists.stat.exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ system_venv_path }}"
+    owner: "{{ system_venv_owner }}"
+    group: "{{ system_venv_group }}"
+    mode: "{{ system_venv_mode }}"
+    state: directory
+    recurse: true
+
+- name: Install base packages in virtual environment
+  when: system_venv_packages_base | length > 0
+  become: true
+  ansible.builtin.pip:
+    name: "{{ system_venv_packages_base }}"
+    state: "{{ system_venv_packages_state }}"
+    virtualenv: "{{ system_venv_path }}"
+
+- name: Install extra packages in virtual environment
+  when: system_venv_packages_extra | length > 0
+  become: true
+  ansible.builtin.pip:
+    name: "{{ system_venv_packages_extra }}"
+    state: "{{ system_venv_packages_state }}"
+    virtualenv: "{{ system_venv_path }}"
+
+- name: Remove packages from virtual environment
+  when: system_venv_packages_remove | length > 0
+  become: true
+  ansible.builtin.pip:
+    name: "{{ system_venv_packages_remove }}"
+    state: absent
+    virtualenv: "{{ system_venv_path }}"
+
+- name: Set runtime python interpreter
+  when: system_venv_set_interpreter
+  block:
+    - name: Set ansible_python_interpreter to use venv
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: "{{ system_venv_path }}/bin/python"
+
+    - name: Reset connection to apply new Python interpreter
+      ansible.builtin.meta: reset_connection
+
+    - name: Display configured Python interpreter
+      ansible.builtin.debug:
+        msg: "Ansible Python interpreter set to: {{ ansible_python_interpreter }}"

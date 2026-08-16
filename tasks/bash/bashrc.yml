@@ -90,6 +90,59 @@
         group: root
         mode: "0644"
 
+    - name: Bash | Configure bash_profile template for new users
+      become: true
+      ansible.builtin.template:
+        src: etc/skel/.bash_profile.j2
+        dest: /etc/skel/.bash_profile
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Bash | Find user home directories
+      ansible.builtin.find:
+        paths:
+          - /home
+          - /root
+        file_type: directory
+        recurse: false
+      register: __system_user_home_dirs
+
+    - name: Bash | Check if .bash_profile already sources .bashrc
+      loop: "{{ __system_user_home_dirs.files }}"
+      loop_control:
+        loop_var: __system_user_home_dir
+        label: "{{ __system_user_home_dir.path }}/.bash_profile"
+      become: true
+      ansible.builtin.shell:
+        cmd: "grep -E '(source|\\.) .*bashrc' {{ __system_user_home_dir.path }}/.bash_profile"
+      register: __system_bash_profile_has_bashrc
+      failed_when: false
+      changed_when: false
+
+    - name: Bash | Ensure .bash_profile sources .bashrc for existing users
+      loop: "{{ __system_user_home_dirs.files }}"
+      loop_control:
+        loop_var: __system_user_home_dir
+        index_var: idx
+        label: "{{ __system_user_home_dir.path }}/.bash_profile"
+      when: __system_bash_profile_has_bashrc.results[idx].rc != 0
+      become: true
+      ansible.builtin.blockinfile:
+        path: "{{ __system_user_home_dir.path }}/.bash_profile"
+        create: true
+        owner: "{{ __system_user_home_dir.pw_name }}"
+        group: "{{ __system_user_home_dir.gr_name }}"
+        mode: "0600"
+        block: |2
+          # Source .bashrc if it exists
+          if [ -f ~/.bashrc ]; then
+              source ~/.bashrc
+          fi
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Source bashrc"
+        append_newline: true
+        prepend_newline: true
+
     - name: Bash | Configure prompt
       become: true
       ansible.builtin.template:
