@@ -1,0 +1,30 @@
+---
+# Validate system role configuration
+# Runs early to catch misconfigurations before remote operations
+
+- name: Assert system_min_python_version is valid
+  ansible.builtin.assert:
+    that:
+      - system_min_python_version is defined
+      - system_min_python_version is match('^[0-9]+\.[0-9]+$')
+    fail_msg: >-
+      system_min_python_version must be a 'major.minor' version string
+      (got: '{{ system_min_python_version | default('UNDEFINED') }}')
+    success_msg: "Minimum Python version: {{ system_min_python_version }}"
+
+- name: Assert system_pkg_mgr_shell_fallback is valid
+  ansible.builtin.assert:
+    that:
+      - system_pkg_mgr_shell_fallback | string | lower in ['auto', 'true', 'always', 'false', 'never']
+    fail_msg: >-
+      system_pkg_mgr_shell_fallback must be one of: auto, true/always, false/never
+      (got: '{{ system_pkg_mgr_shell_fallback }}')
+    success_msg: "Shell fallback mode: {{ system_pkg_mgr_shell_fallback }}"
+
+- name: Assert system_venv_python_cmd is set
+  when: system_enable_venv
+  ansible.builtin.assert:
+    that:
+      - system_venv_python_cmd | default('') is truthy
+    fail_msg: "system_venv_python_cmd must be set when system_enable_venv is true"
+    success_msg: "Venv Python command: {{ system_venv_python_cmd }}"

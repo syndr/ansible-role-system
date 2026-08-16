@@ -4,7 +4,15 @@
   when: system_enable_packages_auto_update
   become: true
   block:
+    - name: Install yum-cron (shell fallback)
+      when: __system_pkg_mgr_use_shell | default(false)
+      ansible.builtin.command:
+        cmd: "yum install -y yum-cron"
+      register: __system_yum_cron_install_shell
+      changed_when: "'Nothing to do' not in __system_yum_cron_install_shell.stdout"
+
     - name: Install yum-cron
+      when: not (__system_pkg_mgr_use_shell | default(false))
       ansible.builtin.yum:
         name: yum-cron
         state: present

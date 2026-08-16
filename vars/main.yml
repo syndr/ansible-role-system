@@ -20,6 +20,8 @@ __system_packages_errata_distros:
   - RedHat
   - Rocky
   - Amazon
+  - Ubuntu
+  - Debian
 
 # Set distributions for which we manage yum.conf and dnf.conf (For the templates)
 __system_pkgmgr_supported_distributions:
@@ -35,6 +37,9 @@ __system_pkgmgr_supported_distributions:
 #        <service_generic_name>: <service_name>
 __system_compat_services_list:
   ubuntu:
+    cron: cron
+    ssh: ssh
+  debian:
     cron: cron
     ssh: ssh
   default:
@@ -68,4 +73,12 @@ __system_compat_motd_blacklist: >
 __system_ansible_local_facts:
   version: "{{ __system_project_version }}"
   timestamp: "{{ ansible_date_time.epoch }}"
+
+# Python interpreter for package manager operations
+# - Shell fallback active: use bootstrap interpreter (compatible with ansible-core)
+# - Shell fallback inactive: use discovered pkg mgr Python (has C bindings for dnf/yum/apt)
+__system_pkg_mgr_interpreter: >-
+  {{ system_python_bootstrap_interpreter | default('auto')
+     if (__system_pkg_mgr_use_shell | default(false))
+     else (__system_pkg_mgr_python | default(system_python_bootstrap_interpreter | default('auto'))) }}
 

@@ -13,7 +13,15 @@
       when: system_enable_packages_auto_update
       become: true
       block:
+        - name: Install dnf-automatic (shell fallback)
+          when: __system_pkg_mgr_use_shell | default(false)
+          ansible.builtin.command:
+            cmd: "dnf install -y dnf-automatic"
+          register: __system_dnf_auto_install_shell
+          changed_when: "'Nothing to do' not in __system_dnf_auto_install_shell.stdout"
+
         - name: Install dnf-automatic
+          when: not (__system_pkg_mgr_use_shell | default(false))
           ansible.builtin.dnf:
             name: dnf-automatic
             state: present
