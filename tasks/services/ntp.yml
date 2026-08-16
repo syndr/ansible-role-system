@@ -35,5 +35,9 @@
   ansible.builtin.assert:
     that:
       - system_ntp_configured | default(false) is true
-    fail_msg: No applicable configuration of time has been applied! Do you have a supported ntp service installed?
+    fail_msg: >-
+      No applicable configuration of time has been applied! Install a
+      supported ntp service (chrony), or disable NTP management with
+      system_enable_ntp: false (e.g. on containers, which share the host
+      kernel's clock).
 

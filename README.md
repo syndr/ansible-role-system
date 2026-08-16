@@ -77,6 +77,11 @@ system_enable_alternatives: "{{ system_default }}"
 # Manage system services such as NTP and SSH
 system_enable_services: "{{ system_default }}"
 
+# Manage the NTP time synchronization service (requires system_enable_services)
+#  - Disable on containers (LXC, Docker): guests share the host kernel's clock,
+#    and an in-guest NTP daemon cannot adjust a clock it does not own
+system_enable_ntp: "{{ system_default }}"
+
 # Manage system shell configuration, such as aliases, etc.
 system_enable_shell: "{{ system_default }}"
 
@@ -433,7 +438,9 @@ system_alternatives: []
 
 
 ## Time configuration ## {{{
-# A list of time servers that should be configured. Set to [] to skip.
+# A list of time servers that should be configured. Set to [] to leave the
+#  distribution default server configuration in place. To skip NTP management
+#  entirely (e.g. on containers), set system_enable_ntp: false instead.
 system_ntp_servers:
   - 132.163.96.3   # NIST, Boulder, Colorado
 

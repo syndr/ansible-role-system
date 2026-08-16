@@ -61,6 +61,25 @@
         fail_msg: "NTP configuration should not be enabled! Something went wrong!"
         success_msg: "NTP configuration is disabled as expected!"
 
+    # Containers (LXC, Docker) share the host kernel's clock and rely on
+    # system_enable_ntp: false to skip in-guest NTP management while other
+    # services remain managed.
+    - name: Run system role with services enabled but NTP disabled
+      ansible.builtin.include_role:
+        name: system
+      vars:
+        ansible_user: molecule_runner
+        system_default: false
+        system_enable_services: true
+        system_enable_ntp: false
+
+    - name: Verify NTP was skipped
+      ansible.builtin.assert:
+        that:
+          - system_ntp_configured is not defined
+        fail_msg: "NTP configuration ran despite system_enable_ntp: false!"
+        success_msg: "NTP configuration is skipped as expected!"
+
     - name: Validate setting path works
       block:
         - name: Attempt to run PATH test script in a login shell
